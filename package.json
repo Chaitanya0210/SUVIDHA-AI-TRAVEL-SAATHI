@@ -1,0 +1,30 @@
+{
+  "name": "travel-recommendation-app",
+  "version": "1.0.0",
+  "description": "An industry-scale full-stack travel recommendation web application built with Node.js, Express, MongoDB, and modern Web Frontend.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [
+    "travel",
+    "recommendation",
+    "nodejs",
+    "express",
+    "mongodb",
+    "fullstack"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
