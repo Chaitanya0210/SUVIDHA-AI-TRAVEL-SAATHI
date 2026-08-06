@@ -1,13 +1,13 @@
 // -----------------------------------------------------------------------------
-// Gemini AI Service & Intelligent Itinerary Generator (src/services/geminiService.js)
+// Gemini AI Service & Indian Itinerary Generator (src/services/geminiService.js)
 // -----------------------------------------------------------------------------
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
- * Generates an AI-powered structured travel itinerary.
- * Uses Google Gemini API if GEMINI_API_KEY is available, or fallback engine.
+ * Generates an AI-powered structured travel itinerary tailored specifically for Indian travelers.
+ * Uses Google Gemini API if GEMINI_API_KEY is available, or Indian fallback engine.
  */
-const generateAiItinerary = async ({ destination, durationDays = 3, budgetLevel = 'Mid-Range', travelVibe = 'Adventure', groupType = 'Solo' }) => {
+const generateAiItinerary = async ({ destination, durationDays = 3, budgetLevel = 'Standard', travelVibe = 'Spiritual', groupType = 'Family' }) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (apiKey && apiKey.trim() !== '') {
@@ -15,28 +15,31 @@ const generateAiItinerary = async ({ destination, durationDays = 3, budgetLevel 
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-      const prompt = `You are a world-class travel guide. Create a detailed ${durationDays}-day travel itinerary for "${destination}" catering to a ${groupType} traveler with a ${budgetLevel} budget seeking a ${travelVibe} vibe.
+      const prompt = `You are an expert Indian travel saathi (guide) specializing in Bharat travel. Create a detailed ${durationDays}-day travel itinerary for "${destination}" catering to a ${groupType} traveling in India with a ${budgetLevel} budget seeking a ${travelVibe} experience.
       
-      Respond STRICTLY in pure valid JSON without markdown wrapping or code blocks, using this structure:
+      Respond STRICTLY in pure valid JSON without markdown wrapping or code blocks, using this exact structure:
       {
         "destinationName": "${destination}",
-        "country": "Country Name",
+        "stateOrRegion": "State/Region in India",
+        "country": "India",
         "durationDays": ${durationDays},
         "budgetLevel": "${budgetLevel}",
         "travelVibe": "${travelVibe}",
-        "estimatedTotalCost": 350,
-        "currency": "USD",
-        "aiRationale": "Why this trip is perfect for your travel style...",
-        "coordinates": { "lat": 26.9124, "lng": 75.7873 },
+        "estimatedTotalCostInr": 12500,
+        "currency": "INR",
+        "aiRationale": "Why this trip is perfect for your travel style in India...",
+        "transportAdvice": "Best mode of transport (e.g. Vande Bharat Express, Sleeper Train, State Bus, Cab)",
+        "foodAdvice": "Top local food spots (e.g., Pure Veg Dhabas, Famous Street Food Street, Local Thali)",
+        "coordinates": { "lat": 25.3176, "lng": 82.9739 },
         "itinerary": [
           {
             "day": 1,
-            "theme": "Arrival & Initial Exploration",
-            "morning": "Detailed morning activity description",
-            "afternoon": "Detailed afternoon activity description",
-            "evening": "Detailed evening activity description",
-            "stay": "Recommended hotel/hostel type",
-            "estimatedDayCost": 100
+            "theme": "Arrival & Temple/Sightseeing Exploration",
+            "morning": "Detailed morning activity",
+            "afternoon": "Detailed afternoon activity & lunch at famous local dhaba",
+            "evening": "Aarti or evening sunset view",
+            "stay": "Recommended hotel/guesthouse",
+            "estimatedDayCostInr": 3500
           }
         ]
       }`;
@@ -44,91 +47,99 @@ const generateAiItinerary = async ({ destination, durationDays = 3, budgetLevel 
       const result = await model.generateContent(prompt);
       const textResponse = result.response.text();
       
-      // Clean JSON formatting if enclosed in ```json ... ```
       const cleanedJsonText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(cleanedJsonText);
       return parsedData;
 
     } catch (error) {
-      console.warn(`⚠️ Gemini API call failed or unconfigured, switching to Intelligent Local Fallback Engine: ${error.message}`);
+      console.warn(`⚠️ Gemini API call failed or unconfigured, switching to Indian Fallback Engine: ${error.message}`);
     }
   }
 
   // -----------------------------------------------------------------------------
-  // Intelligent Local Fallback Engine (Runs seamlessly when API Key is absent)
+  // Indian Fallback Engine (Runs seamlessly with ₹ INR currency calibration)
   // -----------------------------------------------------------------------------
-  return createFallbackItinerary({ destination, durationDays, budgetLevel, travelVibe, groupType });
+  return createIndianFallbackItinerary({ destination, durationDays, budgetLevel, travelVibe, groupType });
 };
 
-// Local Itinerary Generator for seamless offline / zero-key support
-const createFallbackItinerary = ({ destination, durationDays, budgetLevel, travelVibe, groupType }) => {
-  const costMultiplier = budgetLevel === 'Budget' ? 40 : budgetLevel === 'Luxury' ? 250 : 110;
-  const estimatedTotalCost = durationDays * costMultiplier;
+// Local Indian Itinerary Generator
+const createIndianFallbackItinerary = ({ destination, durationDays, budgetLevel, travelVibe, groupType }) => {
+  // ₹ INR Multiplier
+  const costMultiplier = budgetLevel === 'Pocket-Friendly' ? 1400 : budgetLevel === 'Royal-Luxury' ? 12000 : 3800;
+  const estimatedTotalCostInr = durationDays * costMultiplier;
 
   const daysArray = [];
   const activitiesByVibe = {
-    Adventure: [
-      { morning: "Sunrise trek or cable car ride to viewpoint", afternoon: "Zip-lining or water rafting adventure", evening: "Local night market exploration & campfire dinner" },
-      { morning: "Guided mountain biking tour", afternoon: "Paragliding or cliff-jumping spot visit", evening: "Unwind at a local rooftop craft brewery" },
-      { morning: "Nature reserve trail hike", afternoon: "Kayaking or lake navigation", evening: "Stargazing at scenic high point" }
+    Spiritual: [
+      { morning: "Early morning holy dip & sunrise temple visit", afternoon: "Explore sacred ghats & traditional South/North Indian Thali lunch", evening: "Attend evening Ganga/Narmada/Yamuna Aarti with diya ceremony" },
+      { morning: "Guided heritage walk through old city bazaars", afternoon: "Visit historic ashrams & meditation hall", evening: "Local sweets (Kachori, Jalebi, Lassi) tasting trail" },
+      { morning: "Peaceful morning chants session", afternoon: "Visit nearby hilltop shrine or museum", evening: "Souvenir shopping for idols, brassware & silk sarees" }
     ],
-    Nature: [
-      { morning: "Early morning botanical garden & bird watching", afternoon: "Waterfall picnic and scenic nature trail", evening: "Sunset viewpoint walk with local tea" },
-      { morning: "National park wildlife safari", afternoon: "River cruise and eco-lodge tour", evening: "Relaxing spa session amidst greenery" },
-      { morning: "Organic farm tour & fresh breakfast", afternoon: "Hidden lake exploration", evening: "Outdoor photography session at dusk" }
+    "Himalayan Trek": [
+      { morning: "Early morning trek to scenic snow viewpoint", afternoon: "Local Pahadi lunch & riverside tea break", evening: "Campfire evening with live acoustic music" },
+      { morning: "Visit Solang/Rohtang/Pass & adventure activity", afternoon: "Explore Old town cafes & momo stalls", evening: "Relaxing stroll along Mall Road" },
+      { morning: "Nature trail walk through pine forests", afternoon: "Visit ancient wooden temple & local hot springs", evening: "Sunset viewing at mountain ridge" }
     ],
     Heritage: [
-      { morning: "Historic fort & palace architecture tour", afternoon: "Ancient museum & heritage walkthrough", evening: "Cultural folk music & dance performance" },
-      { morning: "Old town heritage bazaar discovery", afternoon: "Traditional artisan & pottery workshop", evening: "Historic mansion dinner experience" },
-      { morning: "Archaeological monument exploration", afternoon: "Local heritage library & souvenir shopping", evening: "Light and sound show at heritage site" }
+      { morning: "Guided tour of grand fort & royal palace halls", afternoon: "Royal Rajasthani Thali / local cuisine feast", evening: "Cultural folk music, Kalbeliya dance & puppet show" },
+      { morning: "Explore pink/blue city architecture & stepwells (Baori)", afternoon: "Visit local handicraft, bandhani & gemstone bazaars", evening: "Sunset tea at fort rooftop looking over city lights" },
+      { morning: "Visit royal cenotaphs & museum collection", afternoon: "Traditional pottery & Block printing workshop", evening: "Heritage haveli dinner experience" }
     ],
-    Relaxation: [
-      { morning: "Mindful yoga & beachside meditation", afternoon: "Aromatherapy thermal spa treatment", evening: "Sunset beach walk & seafood dinner" },
-      { morning: "Leisurely brunch at seaside cafe", afternoon: "Poolside relaxing & reading session", evening: "Catamaran sunset sailboat cruise" },
-      { morning: "Quiet park stroll & artisan coffee", afternoon: "Resort cabana lounging", evening: "Fine dining candlelit dinner" }
+    Beaches: [
+      { morning: "Sunrise walk along golden sandy beach", afternoon: "Shack lunch with fresh seafood/coastal curry & coconut water", evening: "Sunset beach sports & flea market browsing" },
+      { morning: "Water sports adventure (Banana boat, Jet Ski, Parasailing)", afternoon: "Explore Portuguese heritage churches & Latin Quarter", evening: "Beachfront sunset music & seafood dinner" },
+      { morning: "Dolphin watching boat trip / Island cruise", afternoon: "Relaxing hammock session at quiet beach", evening: "Night market shopping & coastal cafe trail" }
     ]
   };
 
-  const selectedVibeList = activitiesByVibe[travelVibe] || activitiesByVibe.Adventure;
+  const selectedVibeList = activitiesByVibe[travelVibe] || activitiesByVibe.Spiritual;
 
   for (let i = 1; i <= durationDays; i++) {
     const actIndex = (i - 1) % selectedVibeList.length;
     const act = selectedVibeList[actIndex];
     daysArray.push({
       day: i,
-      theme: `Day ${i}: ${travelVibe} & Highlight Discovery`,
+      theme: `Day ${i}: ${travelVibe} & Local Discovery`,
       morning: `${act.morning} in ${destination}`,
-      afternoon: `${act.afternoon} tailored for ${groupType} travelers`,
+      afternoon: `${act.afternoon} (Recommended for ${groupType} travel)`,
       evening: `${act.evening}`,
-      stay: budgetLevel === 'Budget' ? 'Boutique Hostel / Homestay' : budgetLevel === 'Luxury' ? '5-Star Luxury Resort & Spa' : '4-Star Central Heritage Hotel',
-      estimatedDayCost: costMultiplier
+      stay: budgetLevel === 'Pocket-Friendly' ? 'Clean Yatri Niwas / Boutique Homestay' : budgetLevel === 'Royal-Luxury' ? '5-Star Heritage Palace / Luxury Resort' : '3-Star Standard Hotel / AC Guest House',
+      estimatedDayCostInr: costMultiplier
     });
   }
 
-  // Pre-mapped destination coordinates for interactive OpenStreetMap pins
+  // Coordinates for top Indian destinations
   const coordsMap = {
-    'manali': { lat: 32.2432, lng: 77.1892, country: 'India' },
-    'goa': { lat: 15.2993, lng: 74.1240, country: 'India' },
-    'jaipur': { lat: 26.9124, lng: 75.7873, country: 'India' },
-    'kerala': { lat: 10.8505, lng: 76.2711, country: 'India' },
-    'kyoto': { lat: 35.0116, lng: 135.7681, country: 'Japan' },
-    'santorini': { lat: 36.3932, lng: 25.4615, country: 'Greece' },
-    'banff': { lat: 51.1784, lng: -115.5708, country: 'Canada' },
-    'zurich': { lat: 47.3769, lng: 8.5417, country: 'Switzerland' }
+    'varanasi': { lat: 25.3176, lng: 82.9739, state: 'Uttar Pradesh' },
+    'kashi': { lat: 25.3176, lng: 82.9739, state: 'Uttar Pradesh' },
+    'rishikesh': { lat: 30.0869, lng: 78.2676, state: 'Uttarakhand' },
+    'manali': { lat: 32.2432, lng: 77.1892, state: 'Himachal Pradesh' },
+    'jaipur': { lat: 26.9124, lng: 75.7873, state: 'Rajasthan' },
+    'udaipur': { lat: 24.5854, lng: 73.7125, state: 'Rajasthan' },
+    'goa': { lat: 15.2993, lng: 74.1240, state: 'Goa' },
+    'kerala': { lat: 9.4981, lng: 76.3388, state: 'Kerala' },
+    'alleppey': { lat: 9.4981, lng: 76.3388, state: 'Kerala' },
+    'leh': { lat: 34.1526, lng: 77.5771, state: 'Ladakh' },
+    'ladakh': { lat: 34.1526, lng: 77.5771, state: 'Ladakh' },
+    'amritsar': { lat: 31.6340, lng: 74.8723, state: 'Punjab' },
+    'andaman': { lat: 11.6233, lng: 92.7265, state: 'Andaman & Nicobar' }
   };
 
   const key = destination.toLowerCase().trim();
-  const matchedCoords = coordsMap[key] || { lat: 20.5937, lng: 78.9629, country: 'Global Location' };
+  const matchedCoords = coordsMap[key] || { lat: 20.5937, lng: 78.9629, state: 'India' };
 
   return {
     destinationName: destination,
-    country: matchedCoords.country,
+    stateOrRegion: matchedCoords.state,
+    country: "India",
     durationDays: durationDays,
     budgetLevel: budgetLevel,
     travelVibe: travelVibe,
-    estimatedTotalCost: estimatedTotalCost,
-    currency: "USD",
-    aiRationale: `This ${durationDays}-day ${travelVibe.toLowerCase()} trip to ${destination} is specially calculated for a ${budgetLevel.toLowerCase()} budget. It balances thrilling highlights, cultural spots, and optimum daily pacing.`,
+    estimatedTotalCostInr: estimatedTotalCostInr,
+    currency: "INR",
+    aiRationale: `This ${durationDays}-day ${travelVibe.toLowerCase()} trip to ${destination} is specially crafted for ${groupType} traveling in India on a ${budgetLevel.toLowerCase()} budget. It includes local dhaba food trails, IRCTC/cab transport options, and spiritual/cultural highlights.`,
+    transportAdvice: "Vande Bharat Express / IRCTC AC Train or Direct State AC Bus recommended for seamless travel.",
+    foodAdvice: "Must try local Pure Veg Dhabas, Street food chaat, & authentic Thali meals.",
     coordinates: { lat: matchedCoords.lat, lng: matchedCoords.lng },
     itinerary: daysArray
   };

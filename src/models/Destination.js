@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Destination Model (src/models/Destination.js)
+// Destination Model (src/models/Destination.js) - Tailored for Indian Tourism
 // -----------------------------------------------------------------------------
 const mongoose = require('mongoose');
 
@@ -11,17 +11,18 @@ const destinationSchema = new mongoose.Schema({
   },
   country: {
     type: String,
-    required: [true, 'Country is required'],
+    default: 'India',
     trim: true
   },
   stateOrRegion: {
     type: String,
+    required: true,
     trim: true
   },
   category: {
     type: String,
-    enum: ['Mountain', 'Beach', 'Historic', 'City', 'Nature', 'Heritage', 'Desert', 'Island'],
-    default: 'Nature'
+    enum: ['Hill Station', 'Beach', 'Heritage', 'Spiritual', 'Nature', 'Desert', 'Island', 'Backwaters'],
+    default: 'Hill Station'
   },
   description: {
     type: String,
@@ -29,20 +30,20 @@ const destinationSchema = new mongoose.Schema({
   },
   imageUrl: {
     type: String,
-    default: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80'
+    default: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80'
   },
   budgetLevel: {
     type: String,
-    enum: ['Budget', 'Mid-Range', 'Luxury'],
-    default: 'Mid-Range'
+    enum: ['Pocket-Friendly', 'Standard', 'Royal-Luxury'],
+    default: 'Standard'
   },
-  estimatedCostPerDay: {
+  estimatedCostPerDayInr: {
     type: Number,
     required: true
   },
   travelVibes: [{
     type: String,
-    enum: ['Adventure', 'Nature', 'Relaxation', 'Heritage', 'Nightlife', 'Foodie', 'Shopping', 'Romance', 'Family', 'Beach']
+    enum: ['Adventure', 'Nature', 'Relaxation', 'Heritage', 'Nightlife', 'Foodie', 'Spiritual', 'Honeymoon', 'Family', 'Beach', 'Himalayan Trek', 'Shopping']
   }],
   bestSeasons: [{
     type: String,
@@ -54,7 +55,7 @@ const destinationSchema = new mongoose.Schema({
   },
   rating: {
     type: Number,
-    default: 4.5,
+    default: 4.8,
     min: 1,
     max: 5
   },
