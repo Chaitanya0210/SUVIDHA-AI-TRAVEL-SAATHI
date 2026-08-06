@@ -1,60 +1,64 @@
 // -----------------------------------------------------------------------------
-// Industry-Standard Express.js Entry Point (server.js)
+// SUVIDHA AI TRAVEL SAATHI - Main Express Server (src/server.js)
 // -----------------------------------------------------------------------------
-
-// Load environment variables from .env file into process.env
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const express = require('express');
 const cors = require('cors');
+const connectDB = require('./config/db');
 
-// Initialize the Express Application
+// Import Route Handlers
+const destinationRoutes = require('./routes/destinationRoutes');
+const aiPlannerRoutes = require('./routes/aiPlannerRoutes');
+const authRoutes = require('./routes/authRoutes');
+
+const { seedDestinations } = require('./controllers/destinationController');
+
+// Initialize Express App
 const app = express();
 
-// -----------------------------------------------------------------------------
-// Middleware Pipeline Configuration
-// -----------------------------------------------------------------------------
+// Connect to MongoDB Database
+connectDB().then((connected) => {
+  if (connected) {
+    seedDestinations();
+  }
+});
 
-// Enable Cross-Origin Resource Sharing (CORS) - permits frontend requests
+// Middleware Configuration
 app.use(cors());
-
-// Parse incoming HTTP requests with JSON payloads (e.g., POST/PUT JSON body)
 app.use(express.json());
-
-// Parse URL-encoded data from HTML forms
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static frontend assets from the 'public' folder
+// Serve static frontend assets from public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
-// -----------------------------------------------------------------------------
-// API Health Check & Sample Routes
-// -----------------------------------------------------------------------------
+// Mount API Routes
+app.use('/api/destinations', destinationRoutes);
+app.use('/api/ai-planner', aiPlannerRoutes);
+app.use('/api/auth', authRoutes);
 
-// Basic health check endpoint to confirm backend server health
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'Travel Recommendation API is running smoothly',
+    appName: 'SUVIDHA AI TRAVEL SAATHI',
+    version: '1.0.0',
     timestamp: new Date().toISOString()
   });
 });
 
-// Fallback route: serve index.html for all client requests
+// Fallback route: serve index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// -----------------------------------------------------------------------------
 // Server Initialization
-// -----------------------------------------------------------------------------
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`=======================================================`);
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🚀 SUVIDHA AI TRAVEL SAATHI Server Active on Port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Local URL: http://localhost:${PORT}`);
+  console.log(`🔗 Local Application URL: http://localhost:${PORT}`);
   console.log(`=======================================================`);
 });

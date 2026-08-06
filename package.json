@@ -1,7 +1,7 @@
 {
   "name": "travel-recommendation-app",
   "version": "1.0.0",
-  "description": "An industry-scale full-stack travel recommendation web application built with Node.js, Express, MongoDB, and modern Web Frontend.",
+  "description": "SUVIDHA AI TRAVEL SAATHI - Industry-scale full-stack travel recommendation & AI trip planning application",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
@@ -11,6 +11,10 @@
   "keywords": [
     "travel",
     "recommendation",
+    "ai-trip-planner",
+    "gemini-ai",
+    "openstreetmap",
+    "leaflet",
     "nodejs",
     "express",
     "mongodb",
@@ -19,9 +23,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.14.1",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.2"
   },
   "devDependencies": {

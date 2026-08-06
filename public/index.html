@@ -3,14 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel Recommendation Platform</title>
+    <title>SUVIDHA AI TRAVEL SAATHI - Smart Travel Recommendation Engine</title>
+    
+    <!-- Meta Descriptions & SEO -->
+    <meta name="description" content="SUVIDHA AI TRAVEL SAATHI provides AI-driven personalized travel itineraries, location recommendations, and zero-cost OpenStreetMap interactive guides.">
+    <meta name="keywords" content="travel recommendation, AI trip planner, Gemini AI, OpenStreetMap, travel itineraries, India travel guide">
+    
+    <!-- Leaflet.js Interactive OpenStreetMap CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Custom Design System CSS -->
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <div id="app">
-        <h1>Welcome to WanderPulse - Travel Recommendation Engine</h1>
-        <p>Industry-scale full-stack application under active development.</p>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Navigation Bar                                                          -->
+    <!-- ----------------------------------------------------------------------- -->
+    <nav class="navbar">
+        <a href="#" class="logo">
+            <i class="fa-solid fa-compass" style="color: var(--accent-emerald);"></i>
+            SUVIDHA <span class="logo-badge">AI SAATHI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#hero">Home</a></li>
+            <li><a href="#ai-wizard">AI Planner</a></li>
+            <li><a href="#workspace">Map & Itinerary</a></li>
+            <li><a href="#destinations">Explore Spots</a></li>
+            <li>
+                <button class="btn btn-secondary" id="wishlist-btn">
+                    <i class="fa-solid fa-bookmark" style="color: var(--accent-amber);"></i> Wishlist 
+                    <span id="wishlist-count" style="background: var(--accent-emerald); color: #000; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">0</span>
+                </button>
+            </li>
+            <li id="auth-nav-item">
+                <button class="btn btn-primary" onclick="openAuthModal()">
+                    <i class="fa-solid fa-user"></i> Login / Register
+                </button>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Hero Section                                                            -->
+    <!-- ----------------------------------------------------------------------- -->
+    <section class="hero" id="hero">
+        <div class="hero-tagline">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> NEXT-GEN ACCURATE TRAVEL RECOMMENDATION PLATFORM
+        </div>
+        <h1 class="hero-title">
+            Your Personal <span>AI Travel Saathi</span> <br>For Smart & Accurate Journeys
+        </h1>
+        <p class="hero-desc">
+            Stop wasting hours reading generic travel blogs. Get instant, tailored day-by-day itineraries, exact cost breakdowns, and live interactive map routes matched precisely to your budget and mood.
+        </p>
+    </section>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- AI Travel Planner Wizard Card                                            -->
+    <!-- ----------------------------------------------------------------------- -->
+    <section class="container" id="ai-wizard">
+        <div class="glass-panel wizard-card">
+            <h2 class="wizard-title">
+                <i class="fa-solid fa-robot" style="color: var(--accent-cyan);"></i>
+                Generate Your AI Itinerary
+            </h2>
+            <form id="ai-planner-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="destination-input"><i class="fa-solid fa-location-dot"></i> Destination / City</label>
+                        <input type="text" id="destination-input" class="form-input" placeholder="e.g. Manali, Jaipur, Kyoto, Goa" required value="Manali">
+                    </div>
+                    <div class="form-group">
+                        <label for="duration-select"><i class="fa-solid fa-calendar-days"></i> Trip Duration</label>
+                        <select id="duration-select" class="form-select">
+                            <option value="2">2 Days (Weekend Getaway)</option>
+                            <option value="3" selected>3 Days (Short Trip)</option>
+                            <option value="5">5 Days (Full Experience)</option>
+                            <option value="7">7 Days (Week Expedition)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="budget-select"><i class="fa-solid fa-wallet"></i> Budget Range</label>
+                        <select id="budget-select" class="form-select">
+                            <option value="Budget">Budget Friendly ($40/day)</option>
+                            <option value="Mid-Range" selected>Mid-Range ($110/day)</option>
+                            <option value="Luxury">Luxury ($250/day)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="vibe-select"><i class="fa-solid fa-heart"></i> Travel Vibe</label>
+                        <select id="vibe-select" class="form-select">
+                            <option value="Adventure" selected>⚡ Adventure & Trekking</option>
+                            <option value="Nature">🌿 Nature & Scenic Views</option>
+                            <option value="Heritage">🏰 Heritage & Culture</option>
+                            <option value="Relaxation">💆 Relaxation & Spa</option>
+                            <option value="Nightlife">🎉 Party & Nightlife</option>
+                            <option value="Foodie">🍲 Foodie & Local Taste</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="group-select"><i class="fa-solid fa-users"></i> Group Type</label>
+                        <select id="group-select" class="form-select">
+                            <option value="Solo" selected>Solo Traveler</option>
+                            <option value="Couple">Couple / Romantic</option>
+                            <option value="Friends">Friends Group</option>
+                            <option value="Family">Family Trip</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        <i class="fa-solid fa-shield-halved" style="color: var(--accent-emerald);"></i> Powered by Gemini AI & OpenStreetMap
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="generate-btn">
+                        <i class="fa-solid fa-bolt"></i> Generate Plan & Map
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Interactive Workspace: OpenStreetMap & AI Itinerary View                 -->
+    <!-- ----------------------------------------------------------------------- -->
+    <section class="container" id="workspace">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">Interactive Map & Day-by-Day Plan</h2>
+                <p style="color: var(--text-secondary);">Explore live map pins, daily activity routes, and cost breakdowns</p>
+            </div>
+            <button class="btn btn-secondary" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Export / Print Itinerary
+            </button>
+        </div>
+
+        <div class="workspace-grid">
+            <!-- OpenStreetMap Container -->
+            <div id="map"></div>
+
+            <!-- AI Itinerary Output View -->
+            <div class="glass-panel itinerary-view" id="itinerary-output">
+                <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);" id="itinerary-placeholder">
+                    <i class="fa-solid fa-map-location-dot" style="font-size: 3rem; color: var(--accent-cyan); margin-bottom: 1rem;"></i>
+                    <h3>Your Customized Itinerary Will Appear Here</h3>
+                    <p style="margin-top: 0.5rem;">Fill out the AI Planner wizard above and click <strong>Generate Plan</strong>!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Featured Destinations Section with Filtering                            -->
+    <!-- ----------------------------------------------------------------------- -->
+    <section class="container" id="destinations">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">Popular Recommended Destinations</h2>
+                <p style="color: var(--text-secondary);">Browse curated travel spots filtered by category & vibe</p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <input type="text" id="search-input" class="form-input" placeholder="🔍 Search location..." style="min-width: 240px;">
+            </div>
+        </div>
+
+        <div class="filter-chips">
+            <button class="chip active" onclick="filterDestinations('all', this)">All Spots</button>
+            <button class="chip" onclick="filterDestinations('Mountain', this)">⛰️ Mountain</button>
+            <button class="chip" onclick="filterDestinations('Beach', this)">🏖️ Beach</button>
+            <button class="chip" onclick="filterDestinations('Heritage', this)">🏰 Heritage</button>
+            <button class="chip" onclick="filterDestinations('Nature', this)">🌿 Nature</button>
+            <button class="chip" onclick="filterDestinations('Island', this)">🏝️ Island</button>
+        </div>
+
+        <!-- Destination Cards Grid -->
+        <div class="grid" id="destinations-grid">
+            <!-- Dynamic JavaScript Content -->
+        </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Destination Detail Modal                                                -->
+    <!-- ----------------------------------------------------------------------- -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="glass-panel modal-content" id="modal-content-body">
+            <button class="close-btn" onclick="closeModal('detail-modal')">&times;</button>
+            <!-- Dynamic modal content loaded via JavaScript -->
+        </div>
     </div>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Auth Modal (Login / Register)                                           -->
+    <!-- ----------------------------------------------------------------------- -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="glass-panel modal-content" style="max-width: 420px;">
+            <button class="close-btn" onclick="closeModal('auth-modal')">&times;</button>
+            <h2 style="margin-bottom: 1rem; text-align: center;" id="auth-modal-title">Welcome Back</h2>
+            
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                <div class="form-group" style="margin-bottom: 1rem;" id="name-group">
+                    <label for="auth-name">Full Name</label>
+                    <input type="text" id="auth-name" class="form-input" placeholder="Your Name">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="auth-email">Email Address</label>
+                    <input type="email" id="auth-email" class="form-input" placeholder="user@example.com" required value="demo@suvidha.com">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="auth-password">Password</label>
+                    <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required value="password123">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" id="auth-submit-btn">
+                    Login to Account
+                </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+                <span id="auth-toggle-text">Don't have an account?</span> 
+                <a href="#" onclick="toggleAuthMode()" style="color: var(--accent-cyan); font-weight: 600;" id="auth-toggle-link">Register Here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Toast Notification Container                                            -->
+    <!-- ----------------------------------------------------------------------- -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Footer                                                                  -->
+    <!-- ----------------------------------------------------------------------- -->
+    <footer>
+        <div class="container">
+            <p><strong>SUVIDHA AI TRAVEL SAATHI</strong> — Designed & Developed as an Industry-Scale Travel Engine</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                Powered by Node.js, Express, MongoDB, Google Gemini AI, and OpenStreetMap (Leaflet).
+            </p>
+        </div>
+    </footer>
+
+    <!-- Leaflet OpenStreetMap JS Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Main Frontend Application Logic JS -->
     <script src="/js/main.js"></script>
 </body>
 </html>
