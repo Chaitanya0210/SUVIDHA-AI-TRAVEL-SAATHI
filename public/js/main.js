@@ -9,6 +9,12 @@ let markersLayerGroup = null;
 let destinationsData = [];
 let wishlist = JSON.parse(localStorage.getItem('suvidha_wishlist') || '[]');
 let currentActivePlan = null;
+let userSessionId = localStorage.getItem('suvidha_session_id');
+
+if (!userSessionId) {
+  userSessionId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+  localStorage.setItem('suvidha_session_id', userSessionId);
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
@@ -25,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       const searchTerm = e.target.value.toLowerCase();
+      if (searchTerm.length >= 3) {
+        logInteractionEvent('destination_search', null, '', { searchQuery: searchTerm });
+      }
       const filtered = destinationsData.filter(d =>
         d.name.toLowerCase().includes(searchTerm) ||
         (d.stateOrRegion && d.stateOrRegion.toLowerCase().includes(searchTerm)) ||
@@ -34,6 +43,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/**
+ * Logs user interaction events to backend for personalization & ML dataset readiness
+ */
+async function logInteractionEvent(action, destinationId, destinationName, metadata = {}) {
+  try {
+    const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
+    await fetch('/api/v1/interactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        destinationId,
+        destinationName,
+        sessionId: userSessionId,
+        userId: user ? user._id : null,
+        metadata
+      })
+    });
+  } catch (err) {
+    console.warn('Silent interaction log error:', err.message);
+  }
+}
 
 // -----------------------------------------------------------------------------
 // Leaflet OpenStreetMap Initialization
@@ -65,9 +97,6 @@ function updateMapMarker(lat, lng, title, text) {
     .openPopup();
 }
 
-/**
- * Visualizes a specific day's optimized route & numbered stops on the map
- */
 function visualizeDayRouteOnMap(dayData, destinationName) {
   if (!map || !dayData) return;
 
@@ -102,7 +131,6 @@ function visualizeDayRouteOnMap(dayData, destinationName) {
       const color = categoryColors[stop.category] || '#6366f1';
       const stopNumber = stop.stopOrder || (index + 1);
 
-      // Custom Numbered HTML Marker Icon
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: `<div style="background-color:${color}; color:#fff; border:2px solid #fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; box-shadow:0 3px 6px rgba(0,0,0,0.4);">${stopNumber}</div>`,
@@ -123,9 +151,8 @@ function visualizeDayRouteOnMap(dayData, destinationName) {
     }
   });
 
-  // Draw Route Line connecting stops
   if (latLngs.length > 1) {
-    const polyline = L.polyline(latLngs, {
+    L.polyline(latLngs, {
       color: '#6366f1',
       weight: 4,
       opacity: 0.8,
@@ -204,13 +231,11 @@ function renderDestinationsGrid(items) {
   }).join('');
 }
 
-// -----------------------------------------------------------------------------
-// Form Handling & AI Plan Rendering
-// -----------------------------------------------------------------------------
 function selectDestinationForPlanner(name) {
   const destInput = document.getElementById('destination-input');
   if (destInput) {
     destInput.value = name;
+    logInteractionEvent('destination_click', null, name);
     document.getElementById('ai-planner-form').scrollIntoView({ behavior: 'smooth' });
   }
 }
@@ -227,6 +252,8 @@ async function handleAiPlannerSubmit(e) {
   const originalBtnText = btn.innerHTML;
   btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Bharat AI Saathi Planning...`;
   btn.disabled = true;
+
+  logInteractionEvent('trip_generated', null, destination, { durationDays, budgetLevel, vibe: travelVibe, groupType });
 
   try {
     const response = await fetch('/api/v1/ai-planner/generate-plan', {
@@ -346,7 +373,6 @@ function renderItineraryView(plan) {
     </div>
   `;
 
-  // Visualize Day 1 route by default
   if (days.length > 0) {
     visualizeDayRouteOnMap(days[0], destName);
   }
@@ -357,11 +383,7 @@ function selectDayForMapRoute(dayIndex) {
 
   const tabs = document.querySelectorAll('#day-selector-tabs button');
   tabs.forEach((tab, idx) => {
-    if (idx === dayIndex) {
-      tab.className = 'btn btn-primary';
-    } else {
-      tab.className = 'btn btn-outline';
-    }
+    tab.className = (idx === dayIndex) ? 'btn btn-primary' : 'btn btn-outline';
   });
 
   const targetDay = currentActivePlan.days[dayIndex];
@@ -401,7 +423,6 @@ function renderDayCards(days) {
   }).join('');
 }
 
-// Partner Click Redirect Handling
 function handlePartnerClick(partner, destination) {
   const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
   if (!user || !user.isPremium) {
@@ -425,7 +446,6 @@ function handlePartnerClick(partner, destination) {
   window.open(targetUrl, '_blank');
 }
 
-// Toast Notifications
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
@@ -434,7 +454,6 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.remove(), 4000);
 }
 
-// User Auth Session Helpers
 function checkUserSession() {
   const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
   const userBtn = document.getElementById('user-profile-btn');
@@ -457,11 +476,13 @@ function toggleBookmark(name) {
   const index = wishlist.findIndex(item => item.name === name);
   if (index > -1) {
     wishlist.splice(index, 1);
+    logInteractionEvent('wishlist_remove', null, name);
     showToast(`Removed ${name} from Wishlist`, 'info');
   } else {
     const found = destinationsData.find(d => d.name === name);
     if (found) {
       wishlist.push(found);
+      logInteractionEvent('wishlist_add', null, name, { vibe: (found.travelVibes || [])[0], category: found.category });
       showToast(`Saved ${name} to Wishlist!`, 'success');
     }
   }

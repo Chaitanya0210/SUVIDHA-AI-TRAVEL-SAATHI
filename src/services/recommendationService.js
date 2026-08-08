@@ -2,7 +2,9 @@
 // Deterministic Recommendation & Multi-Attribute Scoring Engine (src/services/recommendationService.js)
 // -----------------------------------------------------------------------------
 const Destination = require('../models/Destination');
+const Interaction = require('../models/Interaction');
 const { initialDestinations } = require('../utils/seeder');
+const mongoose = require('mongoose');
 
 // Default Component Weights (Sum to 1.0 / 100%)
 const DEFAULT_WEIGHTS = {
@@ -17,9 +19,57 @@ const DEFAULT_WEIGHTS = {
 };
 
 /**
+ * Aggregates user interaction history to extract inferred historical preferences
+ */
+const getUserHistoricalProfile = async (userId, sessionId) => {
+  if (mongoose.connection.readyState !== 1) return null;
+
+  try {
+    const queryConditions = [];
+    if (userId) queryConditions.push({ userId });
+    if (sessionId) queryConditions.push({ sessionId });
+
+    if (queryConditions.length === 0) return null;
+
+    const recentInteractions = await Interaction.find({ $or: queryConditions })
+      .sort({ createdAt: -1 })
+      .limit(30)
+      .lean();
+
+    if (!recentInteractions || recentInteractions.length === 0) return null;
+
+    const vibeCounts = {};
+    const categoryCounts = {};
+    const budgetCounts = {};
+
+    recentInteractions.forEach(item => {
+      const meta = item.metadata || {};
+      if (meta.vibe) vibeCounts[meta.vibe] = (vibeCounts[meta.vibe] || 0) + 1;
+      if (Array.isArray(meta.vibes)) {
+        meta.vibes.forEach(v => { vibeCounts[v] = (vibeCounts[v] || 0) + 1; });
+      }
+      if (meta.category) categoryCounts[meta.category] = (categoryCounts[meta.category] || 0) + 1;
+      if (meta.budgetLevel) budgetCounts[meta.budgetLevel] = (budgetCounts[meta.budgetLevel] || 0) + 1;
+    });
+
+    const getTopKeys = (map, topN = 3) =>
+      Object.keys(map).sort((a, b) => map[b] - map[a]).slice(0, topN);
+
+    return {
+      topVibes: getTopKeys(vibeCounts, 3),
+      topCategories: getTopKeys(categoryCounts, 2),
+      preferredBudgetLevel: getTopKeys(budgetCounts, 1)[0] || null
+    };
+  } catch (err) {
+    console.warn('⚠️ Interaction profile aggregation error:', err.message);
+    return null;
+  }
+};
+
+/**
  * Calculates deterministic match score & component breakdown for a destination
  */
-const calculateDestinationScore = (destination, preferences, weights = DEFAULT_WEIGHTS) => {
+const calculateDestinationScore = (destination, preferences, historicalProfile = null, weights = DEFAULT_WEIGHTS) => {
   const {
     budget,
     budgetLevel,
@@ -74,22 +124,14 @@ const calculateDestinationScore = (destination, preferences, weights = DEFAULT_W
   let groupScore = 70;
   if (group) {
     const suitableList = (destination.suitableFor || ['Solo', 'Couple', 'Friends', 'Family']).map(g => g.toLowerCase());
-    if (suitableList.includes(group.toLowerCase())) {
-      groupScore = 100;
-    } else {
-      groupScore = 50;
-    }
+    groupScore = suitableList.includes(group.toLowerCase()) ? 100 : 50;
   }
 
   // 5. Season Score (10%)
   let seasonScore = 80;
   if (season) {
     const bestSeasonsLower = (destination.bestSeasons || ['All Year']).map(s => s.toLowerCase());
-    if (bestSeasonsLower.includes(season.toLowerCase()) || bestSeasonsLower.includes('all year')) {
-      seasonScore = 100;
-    } else {
-      seasonScore = 45;
-    }
+    seasonScore = (bestSeasonsLower.includes(season.toLowerCase()) || bestSeasonsLower.includes('all year')) ? 100 : 45;
   }
 
   // 6. Food Options Score (5%)
@@ -106,8 +148,8 @@ const calculateDestinationScore = (destination, preferences, weights = DEFAULT_W
   // 8. Rating Score (5%)
   const ratingScore = Math.min(100, Math.round(((destination.rating || 4.8) / 5.0) * 100));
 
-  // Overall Weighted Score Calculation (0 - 99%)
-  const weightedSum =
+  // Explicit Score Calculation
+  const explicitScore =
     (vibeScore * weights.vibe) +
     (budgetScore * weights.budget) +
     (durationScore * weights.duration) +
@@ -117,7 +159,33 @@ const calculateDestinationScore = (destination, preferences, weights = DEFAULT_W
     (popularityScore * weights.popularity) +
     (ratingScore * weights.rating);
 
-  const matchScore = Math.min(99, Math.max(10, Math.round(weightedSum)));
+  // 9. Personalization Boost from Interaction History (15% Max Boost)
+  let personalizationScore = 70;
+  let historyBonusExplanation = null;
+
+  if (historicalProfile) {
+    let pScore = 50;
+    const destVibesLower = (destination.travelVibes || []).map(v => v.toLowerCase());
+    const matchedHistVibes = (historicalProfile.topVibes || []).filter(v => destVibesLower.includes(v.toLowerCase()));
+
+    if (matchedHistVibes.length > 0) {
+      pScore += (matchedHistVibes.length * 20);
+      historyBonusExplanation = `✓ Aligns with your favorite ${matchedHistVibes.join(' & ')} travel history`;
+    }
+
+    if (historicalProfile.topCategories && historicalProfile.topCategories.includes(destination.category)) {
+      pScore += 15;
+    }
+
+    personalizationScore = Math.min(100, pScore);
+  }
+
+  // Final Blended Score (Explicit Current Preference 85% Weight, History 15% Weight)
+  const finalWeightedScore = historicalProfile
+    ? (explicitScore * 0.85) + (personalizationScore * 0.15)
+    : explicitScore;
+
+  const matchScore = Math.min(99, Math.max(10, Math.round(finalWeightedScore)));
 
   const scoreBreakdown = {
     vibe: vibeScore,
@@ -127,11 +195,11 @@ const calculateDestinationScore = (destination, preferences, weights = DEFAULT_W
     season: seasonScore,
     food: foodScore,
     popularity: popularityScore,
-    rating: ratingScore
+    rating: ratingScore,
+    personalization: personalizationScore
   };
 
-  // Deterministic Natural Language Rationale Explanation
-  const matchExplanation = generateMatchExplanation(destination, preferences, scoreBreakdown, matchScore);
+  const matchExplanation = generateMatchExplanation(destination, preferences, scoreBreakdown, matchScore, historyBonusExplanation);
 
   return {
     matchScore,
@@ -141,23 +209,23 @@ const calculateDestinationScore = (destination, preferences, weights = DEFAULT_W
 };
 
 /**
- * Generates deterministic bullet-point rationale based on score sub-components
+ * Generates deterministic natural language rationale explanation
  */
-const generateMatchExplanation = (destination, preferences, scoreBreakdown, matchScore) => {
+const generateMatchExplanation = (destination, preferences, scoreBreakdown, matchScore, historyBonusExplanation = null) => {
   const explanations = [];
 
   explanations.push(`${matchScore}% Overall Compatibility`);
 
+  if (historyBonusExplanation) {
+    explanations.push(historyBonusExplanation);
+  }
+
   if (scoreBreakdown.vibe >= 80) {
     explanations.push(`Strong alignment with your requested travel vibes (${(destination.travelVibes || []).slice(0, 3).join(', ')}).`);
-  } else if (scoreBreakdown.vibe < 50) {
-    explanations.push(`Partial vibe alignment with ${destination.name}.`);
   }
 
   if (scoreBreakdown.budget >= 85) {
     explanations.push(`Fits comfortably within your specified budget (₹${destination.estimatedCostPerDayInr || 2500}/day est.).`);
-  } else if (scoreBreakdown.budget < 50) {
-    explanations.push(`Estimated daily cost (₹${destination.estimatedCostPerDayInr || 2500}/day) exceeds your preferred budget target.`);
   }
 
   if (scoreBreakdown.group >= 90 && preferences.group) {
@@ -166,10 +234,6 @@ const generateMatchExplanation = (destination, preferences, scoreBreakdown, matc
 
   if (scoreBreakdown.duration >= 85 && preferences.duration) {
     explanations.push(`Ideal ${destination.idealDurationDays || 3}-day trip length matches your ${preferences.duration}-day duration.`);
-  }
-
-  if (scoreBreakdown.season >= 90 && preferences.season) {
-    explanations.push(`Best time to visit (${(destination.bestSeasons || []).join(', ')}) aligns with your preferred season.`);
   }
 
   if (destination.rating >= 4.8) {
@@ -183,7 +247,10 @@ const generateMatchExplanation = (destination, preferences, scoreBreakdown, matc
  * Queries candidates and returns ranked recommendations with match scores & explanations
  */
 const getPersonalizedRecommendations = async (preferences) => {
-  const { category, budgetLevel, vibes, sort = 'match', limit = 10, page = 1 } = preferences;
+  const { category, budgetLevel, sort = 'match', limit = 10, page = 1, userId, sessionId } = preferences;
+
+  // Retrieve user's historical interaction profile
+  const historicalProfile = await getUserHistoricalProfile(userId, sessionId);
 
   let candidates = [];
   try {
@@ -201,9 +268,8 @@ const getPersonalizedRecommendations = async (preferences) => {
     candidates = initialDestinations;
   }
 
-  // Calculate deterministic scores for all candidate destinations
   const scoredRecommendations = candidates.map(dest => {
-    const scoringResult = calculateDestinationScore(dest, preferences);
+    const scoringResult = calculateDestinationScore(dest, preferences, historicalProfile);
     return {
       destination: dest,
       matchScore: scoringResult.matchScore,
@@ -212,7 +278,6 @@ const getPersonalizedRecommendations = async (preferences) => {
     };
   });
 
-  // Apply requested sorting
   if (sort === 'budget_asc') {
     scoredRecommendations.sort((a, b) => (a.destination.estimatedCostPerDayInr || 0) - (b.destination.estimatedCostPerDayInr || 0));
   } else if (sort === 'rating_desc') {
@@ -220,11 +285,9 @@ const getPersonalizedRecommendations = async (preferences) => {
   } else if (sort === 'popularity_desc') {
     scoredRecommendations.sort((a, b) => (b.destination.popularityScore || 0) - (a.destination.popularityScore || 0));
   } else {
-    // Default: Sort by highest match score descending
     scoredRecommendations.sort((a, b) => b.matchScore - a.matchScore);
   }
 
-  // Paginate results
   const skip = (page - 1) * limit;
   const paginatedResults = scoredRecommendations.slice(skip, skip + limit);
 
@@ -232,6 +295,7 @@ const getPersonalizedRecommendations = async (preferences) => {
     totalResults: scoredRecommendations.length,
     page,
     limit,
+    personalized: !!historicalProfile,
     recommendations: paginatedResults
   };
 };
@@ -239,5 +303,6 @@ const getPersonalizedRecommendations = async (preferences) => {
 module.exports = {
   calculateDestinationScore,
   generateMatchExplanation,
-  getPersonalizedRecommendations
+  getPersonalizedRecommendations,
+  getUserHistoricalProfile
 };
