@@ -1,6 +1,7 @@
 // -----------------------------------------------------------------------------
 // AI Planner Controller (src/controllers/aiPlannerController.js)
 // -----------------------------------------------------------------------------
+const Destination = require('../models/Destination');
 const { generateStructuredAiItinerary } = require('../services/ai/geminiService');
 const { getPersonalizedRecommendations } = require('../services/recommendationService');
 const { initialDestinations } = require('../utils/seeder');
@@ -26,26 +27,58 @@ const planTripWithAi = async (req, res, next) => {
       vibes: travelVibe ? [travelVibe] : ['Adventure']
     };
 
-    // Candidate Generation via Recommendation Engine
-    const recResult = await getPersonalizedRecommendations(userPreferences);
     let candidateDestination = null;
 
+    // 1. If user explicitly entered/selected a destination name
     if (destination && destination.trim() !== '') {
-      const foundMatch = recResult.recommendations.find(r =>
-        r.destination.name.toLowerCase().includes(destination.trim().toLowerCase())
-      );
-      if (foundMatch) {
+      const cleanDestName = destination.trim();
+      const cleanRegex = new RegExp(cleanDestName.replace(/[()]/g, ''), 'i');
+
+      // Direct MongoDB search first
+      const dbMatch = await Destination.findOne({
+        $or: [
+          { name: cleanRegex },
+          { city: cleanRegex },
+          { stateOrRegion: cleanRegex },
+          { category: cleanRegex }
+        ]
+      });
+
+      if (dbMatch) {
+        candidateDestination = dbMatch.toObject();
+        candidateDestination.matchScore = 95;
+      } else {
+        // Construct structured candidate for custom/unseeded user destination
         candidateDestination = {
-          ...foundMatch.destination,
-          matchScore: foundMatch.matchScore,
-          matchExplanation: foundMatch.matchExplanation
+          name: cleanDestName,
+          destinationName: cleanDestName,
+          stateOrRegion: 'India',
+          city: cleanDestName,
+          category: travelVibe || 'Sightseeing',
+          description: `Custom AI-planned expedition to ${cleanDestName}.`,
+          budgetLevel: budgetLevel || 'Standard',
+          estimatedCostPerDayInr: budgetLevel === 'Pocket-Friendly' ? 1800 : (budgetLevel === 'Royal-Luxury' ? 12000 : 3500),
+          travelVibes: [travelVibe || 'Adventure'],
+          suitableFor: [groupType || 'Solo'],
+          foodOptions: ['Local Dhaba', 'Pure Veg', 'Street Food'],
+          bestSeasons: ['All Seasons'],
+          idealDurationDays: duration,
+          topAttractions: [
+            `${cleanDestName} Landmark & Viewpoint`,
+            `${cleanDestName} Heritage & Cultural Spot`,
+            `${cleanDestName} Local Market & Food Trail`
+          ],
+          coordinates: { lat: 20.5937, lng: 78.9629 }, // Center India fallback
+          matchScore: 92
         };
       }
     }
 
+    // 2. If no target destination provided, use top recommended candidate
     if (!candidateDestination) {
-      // Pick top recommendation candidate
+      const recResult = await getPersonalizedRecommendations(userPreferences);
       const topRec = recResult.recommendations[0];
+
       if (topRec) {
         candidateDestination = {
           ...topRec.destination,
@@ -57,7 +90,7 @@ const planTripWithAi = async (req, res, next) => {
       }
     }
 
-    // Call Gemini AI Service with candidate context
+    // Call Gemini AI Service with targeted candidate context
     const itineraryPlan = await generateStructuredAiItinerary({
       userPreferences,
       candidateDestination
@@ -66,19 +99,20 @@ const planTripWithAi = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        destinationName: itineraryPlan.destination,
+        destinationName: itineraryPlan.destination || candidateDestination.name,
+        destination: itineraryPlan.destination || candidateDestination.name,
         summary: itineraryPlan.summary,
         matchReasoning: itineraryPlan.matchReasoning,
         matchScore: candidateDestination.matchScore || 90,
         estimatedCost: itineraryPlan.estimatedCost,
         days: itineraryPlan.days,
         travelTips: itineraryPlan.travelTips || [],
-        // Legacy properties for backward compatibility
         durationDays: duration,
         budgetLevel: userPreferences.budgetLevel,
         travelVibe: userPreferences.vibes[0],
         estimatedTotalCostInr: itineraryPlan.estimatedCost ? itineraryPlan.estimatedCost.total : duration * 3000,
         currency: 'INR',
+        coordinates: candidateDestination.coordinates || { lat: 20.5937, lng: 78.9629 },
         itinerary: itineraryPlan.days
       }
     });
@@ -88,7 +122,7 @@ const planTripWithAi = async (req, res, next) => {
 };
 
 /**
- * Recommends matched destinations based on quiz attributes with percentage match scores
+ * Recommends matched destinations based on query attributes
  */
 const getRecommendedDestinations = async (req, res, next) => {
   try {
@@ -101,15 +135,9 @@ const getRecommendedDestinations = async (req, res, next) => {
     };
 
     const recResult = await getPersonalizedRecommendations(userPreferences);
-
     res.status(200).json({
       success: true,
-      results: recResult.recommendations.length,
-      data: recResult.recommendations.map(r => ({
-        ...r.destination,
-        matchPercentage: r.matchScore,
-        matchExplanation: r.matchExplanation
-      }))
+      data: recResult
     });
   } catch (error) {
     next(error);
