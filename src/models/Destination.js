@@ -79,4 +79,11 @@ const destinationSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Database Indexes for Fast Search & Filtering
+destinationSchema.index({ name: 1 });
+destinationSchema.index({ category: 1 });
+destinationSchema.index({ budgetLevel: 1 });
+destinationSchema.index({ travelVibes: 1 });
+destinationSchema.index({ name: 'text', description: 'text', stateOrRegion: 'text' });
+
 module.exports = mongoose.model('Destination', destinationSchema);

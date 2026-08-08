@@ -38,4 +38,7 @@ const tripSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Database Indexes for Fast User Trip History Querying
+tripSchema.index({ user: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Trip', tripSchema);
