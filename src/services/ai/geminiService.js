@@ -166,6 +166,53 @@ Return PURE VALID JSON with NO code fences outside:
 };
 
 /**
+ * Dynamic Activity Templates for Fallback Itinerary Generator
+ */
+const getActivityTemplatesForDestination = (category, vibe, destName, attraction, secondaryAttraction) => {
+  const cat = `${category || ''} ${vibe || ''}`.toLowerCase();
+
+  if (cat.includes('beach') || cat.includes('coastal')) {
+    return {
+      morning: [`Morning visit & water sports at ${attraction}`, `Beachcombing & coastal relaxation in ${destName}`],
+      afternoon: [`Seafood & local thali lunch at beachside shack`, `Relaxed afternoon visit to ${secondaryAttraction}`],
+      evening: [`Scenic sunset view at ${destName} beach & coastal promenade`, `Night market stroll & evening local seafood dinner`]
+    };
+  }
+
+  if (cat.includes('mountain') || cat.includes('hill') || cat.includes('trek')) {
+    return {
+      morning: [`Morning nature trail & excursion to ${attraction}`, `Panoramas & mountain viewpoint exploration in ${destName}`],
+      afternoon: [`Authentic Himachali / Mountain Dhaba lunch`, `Stroll through ${secondaryAttraction} & local craft market`],
+      evening: [`Sunset view over snow peaks / pine valleys`, `Cozy bonfire / cafe dinner in ${destName}`]
+    };
+  }
+
+  if (cat.includes('heritage') || cat.includes('fort') || cat.includes('palace')) {
+    return {
+      morning: [`Morning heritage tour & exploration of ${attraction}`, `Marvel at ancient architecture & royal palaces in ${destName}`],
+      afternoon: [`Traditional Thali lunch at local heritage restaurant`, `Afternoon visit to ${secondaryAttraction}`],
+      evening: [`Sunset viewpoint at hilltop fort / lake`, `Evening shopping at handicraft bazaar & traditional dinner`]
+    };
+  }
+
+  if (cat.includes('spiritual') || cat.includes('teerth') || destName.toLowerCase().includes('nanded') || destName.toLowerCase().includes('varanasi') || destName.toLowerCase().includes('amritsar')) {
+    const eveningGhat = destName.toLowerCase().includes('nanded') ? 'Godavari Ghat' : (destName.toLowerCase().includes('varanasi') ? 'Dashashwamedh Ghat' : (destName.toLowerCase().includes('amritsar') ? 'Golden Temple Parikrama' : 'Sacred River Ghat'));
+    return {
+      morning: [`Holy Darshan & morning prayers at ${attraction}`, `Explore surrounding sacred complexes & heritage premises in ${destName}`],
+      afternoon: [`Authentic local Prasad / Dhaba lunch`, `Peaceful afternoon visit to ${secondaryAttraction}`],
+      evening: [`Evening Aarti & sunset view at ${eveningGhat}`, `Dinner at recommended local food trail spot in ${destName}`]
+    };
+  }
+
+  // Default General Explorer Template
+  return {
+    morning: [`Morning visit to ${attraction}`, `Explore top local sight and surrounding viewpoints in ${destName}`],
+    afternoon: [`Enjoy authentic local lunch at popular Dhaba/Thali spot`, `Relaxed afternoon exploration of ${secondaryAttraction}`],
+    evening: [`Sunset view & evening city walk in ${destName}`, `Dinner at recommended local food trail spot`]
+  };
+};
+
+/**
  * Generates an AI-powered structured travel itinerary with geospatial route optimization & real location images
  */
 const generateStructuredAiItinerary = async ({ userPreferences, candidateDestination }) => {
@@ -198,7 +245,7 @@ Generate a structured ${duration}-day trip itinerary for "${destName}" (${candid
 CRITICAL INSTRUCTION FOR LANDMARKS & ATTRACTIONS:
 You MUST include the exact real-world iconic, historical, and religious landmarks of "${destName}".
 Target Known Landmarks for ${destName}: ${attractions.join(', ')}.
-For example, if destination is Nanded, you MUST explicitly include Takht Sachkhand Sri Hazur Abchalnagar Sahib Gurudwara & Gurudwara Shikar Ghat Sahib in the morning/afternoon schedule!
+For example, if destination is Nanded, you MUST explicitly include Takht Sachkhand Sri Hazur Abchalnagar Sahib Gurudwara & Gurudwara Shikar Ghat Sahib in the morning/afternoon schedule! If destination is Goa, include Baga Beach & Dudhsagar Waterfalls! If destination is Manali, include Solang Valley & Hadimba Temple!
 Do NOT write generic placeholders like "City Center" or "Local Sightseeing". Name exact real-world monuments, temples, gurudwaras, forts, or beaches!
 
 INSTRUCTIONS:
@@ -273,7 +320,7 @@ JSON SCHEMA REQUIREMENT:
 };
 
 /**
- * Deterministic Indian Fallback Itinerary Generator with Real Landmarks & Real Location Images
+ * Deterministic Indian Fallback Itinerary Generator with Dynamic Destination Templates
  */
 const createIndianFallbackItinerary = async ({ userPreferences, candidateDestination }) => {
   const duration = userPreferences.duration || candidateDestination.idealDurationDays || 3;
@@ -282,6 +329,7 @@ const createIndianFallbackItinerary = async ({ userPreferences, candidateDestina
   const vibes = userPreferences.vibes || candidateDestination.travelVibes || ['Spiritual'];
 
   const destName = candidateDestination.name || candidateDestination.destinationName || 'Nanded';
+  const category = candidateDestination.category || vibes[0] || 'Tourism';
   const landmarkInfo = getLandmarksForDestination(destName);
 
   const coverImage = candidateDestination.imageUrl || (landmarkInfo ? landmarkInfo.imageUrl : await fetchRealLocationImage(destName));
@@ -308,13 +356,15 @@ const createIndianFallbackItinerary = async ({ userPreferences, candidateDestina
     const secondaryAttraction = attractions[i % attractions.length] || mainAttraction;
     const dayImg = await fetchRealLocationImage(mainAttraction, destName);
 
+    const schedule = getActivityTemplatesForDestination(category, vibes[0], destName, mainAttraction, secondaryAttraction);
+
     daysArray.push({
       day: i,
       title: `Day ${i}: ${mainAttraction} & ${destName} Exploration`,
       imageUrl: dayImg || coverImage,
-      morning: [`Darshan & morning visit to ${mainAttraction}`, `Explore surrounding historical heritage & sacred premises in ${destName}`],
-      afternoon: [`Enjoy authentic local lunch at ${landmarkInfo ? landmarkInfo.foodSpot : 'popular Dhaba/Thali center'}`, `Relaxed afternoon visit to ${secondaryAttraction}`],
-      evening: [`Sunset view at Godavari Ghat & evening Aarti/Prayer`, `Dinner at recommended local food trail spot in ${destName}`],
+      morning: schedule.morning,
+      afternoon: schedule.afternoon,
+      evening: schedule.evening,
       stayRecommendation: landmarkInfo ? landmarkInfo.stayRecommendation : (budgetLevel === 'Pocket-Friendly' ? 'Clean Yatri Niwas / Homestay' : '3-Star Standard Hotel / Guest House'),
       foodSpot: landmarkInfo ? landmarkInfo.foodSpot : `Famous ${destName} Local Thali & Street Food Trail`
     });
@@ -323,14 +373,14 @@ const createIndianFallbackItinerary = async ({ userPreferences, candidateDestina
   return {
     destination: destName,
     imageUrl: coverImage,
-    summary: `${destName} is an exceptional spiritual and historical destination in ${candidateDestination.stateOrRegion || 'Maharashtra, India'}, world-famous for ${attractions[0]} and sacred cultural heritage.`,
+    summary: `${destName} is an exceptional ${category} destination in ${candidateDestination.stateOrRegion || 'India'}, world-famous for ${attractions[0]} and scenic cultural experiences.`,
     matchReasoning: `This itinerary scores ${candidateDestination.matchScore || 95}% compatibility with your preferences, highlighting ${attractions[0]} and fitting comfortably within your ${budgetLevel} budget.`,
     estimatedCost,
     days: daysArray,
     travelTips: [
       `Main landmark highlight: ${attractions[0]}`,
-      'Dress modestly and cover your head when visiting holy Gurudwaras and sacred temples.',
-      'Carry cash for local prasad, rickshaws, and craft markets.'
+      'Respect local traditions, dress appropriately when visiting holy places, and follow local guidelines.',
+      'Carry cash for local transport, street food, and craft markets.'
     ]
   };
 };
