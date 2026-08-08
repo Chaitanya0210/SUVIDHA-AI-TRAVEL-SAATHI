@@ -3,13 +3,14 @@
 // -----------------------------------------------------------------------------
 
 /**
- * Known real-world attractions and landmarks for Indian cities & regions
+ * Known real-world attractions and location images for Indian cities & regions
  */
 const INDIAN_LANDMARKS = {
   nanded: {
     name: "Nanded",
     stateOrRegion: "Maharashtra",
     category: "Spiritual & Historical",
+    imageUrl: "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 19.1383, lng: 77.3210 },
     topAttractions: [
       "Takht Sachkhand Sri Hazur Abchalnagar Sahib Gurudwara",
@@ -18,6 +19,11 @@ const INDIAN_LANDMARKS = {
       "Kaleshwar Temple & Vishnupuri Dam",
       "Gurudwara Nagina Ghat Sahib"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Yatri Niwas near Hazur Sahib / Hotel Kaveri",
     foodSpot: "Hazur Sahib Guru Ka Langar & Nanded Maharashtrian Dhaba"
   },
@@ -25,6 +31,7 @@ const INDIAN_LANDMARKS = {
     name: "Amritsar",
     stateOrRegion: "Punjab",
     category: "Spiritual & Historical",
+    imageUrl: "https://images.unsplash.com/photo-1588096344356-9b48c3b28b6d?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 31.6340, lng: 74.8723 },
     topAttractions: [
       "Sri Harmandir Sahib (Golden Temple)",
@@ -33,6 +40,10 @@ const INDIAN_LANDMARKS = {
       "Gobindgarh Fort",
       "Partition Museum & Heritage Street"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1588096344356-9b48c3b28b6d?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Guesthouse near Golden Temple / Hotel Ramada",
     foodSpot: "Kesar Da Dhaba & Amritsari Kulcha Land"
   },
@@ -40,6 +51,7 @@ const INDIAN_LANDMARKS = {
     name: "Ujjain",
     stateOrRegion: "Madhya Pradesh",
     category: "Spiritual",
+    imageUrl: "https://images.unsplash.com/photo-1600100397608-f010e423b971?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 23.1765, lng: 75.7885 },
     topAttractions: [
       "Mahakaleshwar Jyotirlinga Temple & Bhasma Aarti",
@@ -48,6 +60,9 @@ const INDIAN_LANDMARKS = {
       "Harsiddhi Mata Shaktipeeth Temple",
       "Vedh Shala (Jantar Mantar Observatory)"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1600100397608-f010e423b971?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Hotel near Mahakal Corridor / Bhakta Niwas",
     foodSpot: "Famous Ujjain Poha Jalebi & Malwa Thali Dhaba"
   },
@@ -55,6 +70,7 @@ const INDIAN_LANDMARKS = {
     name: "Ayodhya",
     stateOrRegion: "Uttar Pradesh",
     category: "Spiritual",
+    imageUrl: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 26.7922, lng: 82.1998 },
     topAttractions: [
       "Shri Ram Janmabhoomi Mandir",
@@ -63,6 +79,9 @@ const INDIAN_LANDMARKS = {
       "Saryu River Ghat Aarti & Deepotsav",
       "Guptar Ghat"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Yatri Niwas near Ram Path / Hotel Ayodhya",
     foodSpot: "Shri Ram Thali & Local Ayodhya Awadhi Dhaba"
   },
@@ -70,6 +89,7 @@ const INDIAN_LANDMARKS = {
     name: "Varanasi (Kashi)",
     stateOrRegion: "Uttar Pradesh",
     category: "Spiritual",
+    imageUrl: "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 25.3176, lng: 82.9739 },
     topAttractions: [
       "Kashi Vishwanath Temple & Corridor",
@@ -78,6 +98,9 @@ const INDIAN_LANDMARKS = {
       "Assi Ghat Morning Subah-e-Banaras Yoga & Aarti",
       "Manikarnika & Harishchandra Ghats"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Heritage Hotel on Ghats / Yatri Niwas",
     foodSpot: "Kashi Chat Bhandar & Blue Lassi Shop"
   },
@@ -85,6 +108,7 @@ const INDIAN_LANDMARKS = {
     name: "Manali",
     stateOrRegion: "Himachal Pradesh",
     category: "Hill Station",
+    imageUrl: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 32.2432, lng: 77.1892 },
     topAttractions: [
       "Solang Valley Snow Point & Paragliding",
@@ -93,6 +117,9 @@ const INDIAN_LANDMARKS = {
       "Old Manali Cafe & Handicraft Trail",
       "Vashisht Hot Springs"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Riverside Resort / Mountain Homestay",
     foodSpot: "Old Manali Trout Fish & Himachali Dham Dhaba"
   },
@@ -100,6 +127,7 @@ const INDIAN_LANDMARKS = {
     name: "Goa",
     stateOrRegion: "Goa",
     category: "Beach",
+    imageUrl: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 15.2993, lng: 74.1240 },
     topAttractions: [
       "Baga & Calangute Beach Water Sports",
@@ -108,6 +136,9 @@ const INDIAN_LANDMARKS = {
       "Fort Aguada & Lighthouse",
       "Basilica of Bom Jesus (Old Goa)"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Coastal Beach Resort / Boutique Villa",
     foodSpot: "Goan Fish Thali Shack & Portuguese Bakery"
   },
@@ -115,6 +146,7 @@ const INDIAN_LANDMARKS = {
     name: "Jaipur (Pink City)",
     stateOrRegion: "Rajasthan",
     category: "Heritage",
+    imageUrl: "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 26.9124, lng: 75.7873 },
     topAttractions: [
       "Amer Fort & Sheesh Mahal",
@@ -123,6 +155,9 @@ const INDIAN_LANDMARKS = {
       "Nahargarh Fort Sunset Viewpoint",
       "Johari & Bapu Bazaar Shopping Trail"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Heritage Haveli / Hotel Palace",
     foodSpot: "LMB Johari Bazaar & Rawat Pyaz Kachori"
   },
@@ -130,6 +165,7 @@ const INDIAN_LANDMARKS = {
     name: "Rishikesh",
     stateOrRegion: "Uttarakhand",
     category: "Spiritual & Adventure",
+    imageUrl: "https://images.unsplash.com/photo-1598091383021-15ddea10925d?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 30.0869, lng: 78.2676 },
     topAttractions: [
       "Triveni Ghat Evening Maha Aarti",
@@ -138,43 +174,17 @@ const INDIAN_LANDMARKS = {
       "Shivpuri White Water River Rafting",
       "Neelkanth Mahadev Temple"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1598091383021-15ddea10925d?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Riverside Yoga Ashram / Camping Resort",
     foodSpot: "Chotiwala Restaurant & Freedom Cafe Rishikesh"
-  },
-  haridwar: {
-    name: "Haridwar",
-    stateOrRegion: "Uttarakhand",
-    category: "Spiritual",
-    coordinates: { lat: 29.9457, lng: 78.1642 },
-    topAttractions: [
-      "Har Ki Pauri Holy Ganga Aarti",
-      "Mansa Devi Temple Cable Car Ride",
-      "Chandi Devi Temple Hilltop",
-      "Maya Devi Shaktipeeth Temple",
-      "Daksheshwar Mahadev Temple Kankhal"
-    ],
-    stayRecommendation: "Dharamshala near Har Ki Pauri / Riverside Hotel",
-    foodSpot: "Mathura Walo Ki Pracheen Dukan & Pandit Ji Poori"
-  },
-  shirdi: {
-    name: "Shirdi",
-    stateOrRegion: "Maharashtra",
-    category: "Spiritual",
-    coordinates: { lat: 19.7667, lng: 74.4767 },
-    topAttractions: [
-      "Shri Saibaba Samadhi Mandir",
-      "Dwarkamai Mosque & Sacred Dhuni",
-      "Chavadi & Lendi Baug Gardens",
-      "Khandoba Raya Temple",
-      "Shani Shingnapur Day Excursion"
-    ],
-    stayRecommendation: "Sansthan Bhakta Niwas / Sai Palace Hotel",
-    foodSpot: "Sai Sansthan Prasadalaya & Maharashtrian Dhaba"
   },
   kerala: {
     name: "Kerala Backwaters & Munnar",
     stateOrRegion: "Kerala",
     category: "Nature & Backwaters",
+    imageUrl: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80",
     coordinates: { lat: 9.4981, lng: 76.3388 },
     topAttractions: [
       "Alleppey Houseboat Backwater Cruise",
@@ -183,53 +193,11 @@ const INDIAN_LANDMARKS = {
       "Fort Kochi Chinese Fishing Nets & Heritage Walk",
       "Kathakali Cultural Dance Center"
     ],
+    locationImages: [
+      "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80"
+    ],
     stayRecommendation: "Traditional Alleppey Houseboat / Tea Estate Resort",
     foodSpot: "Kerala Sadya Thali & Karimeen Pollichathu Shack"
-  },
-  agra: {
-    name: "Agra",
-    stateOrRegion: "Uttar Pradesh",
-    category: "Heritage",
-    coordinates: { lat: 27.1767, lng: 78.0081 },
-    topAttractions: [
-      "Taj Mahal Sunrise Monument View",
-      "Agra Red Fort & Royal Palaces",
-      "Mehtab Bagh Taj Sunset Viewpoint",
-      "Fatehpur Sikri Buland Darwaza",
-      "Itimad-ud-Daulah (Baby Taj)"
-    ],
-    stayRecommendation: "Taj View Hotel / Boutique Homestay",
-    foodSpot: "Panchhi Petha Store & Pinch of Spice Agra"
-  },
-  shimla: {
-    name: "Shimla",
-    stateOrRegion: "Himachal Pradesh",
-    category: "Hill Station",
-    coordinates: { lat: 31.1048, lng: 77.1734 },
-    topAttractions: [
-      "The Ridge & Mall Road Promenade",
-      "Jakhu Hanuman Temple & Giant Statue",
-      "Kufri Snow Adventure Point",
-      "Christ Church & Scandal Point",
-      "Kalka-Shimla Heritage Toy Train"
-    ],
-    stayRecommendation: "Colonial Heritage Hotel / Pine Cottage",
-    foodSpot: "Indian Coffee House Mall Road & Local Dhaba"
-  },
-  puri: {
-    name: "Puri",
-    stateOrRegion: "Odisha",
-    category: "Spiritual & Beach",
-    coordinates: { lat: 19.8135, lng: 85.8312 },
-    topAttractions: [
-      "Shree Jagannath Temple",
-      "Puri Golden Beach & Sand Art",
-      "Konark Sun Temple (Black Pagoda)",
-      "Chilika Lake Dolphin Sanctuary & Sea Mouth",
-      "Swargadwar Handicrafts Market"
-    ],
-    stayRecommendation: "Beachfront Resort / Bhakta Niwas",
-    foodSpot: "Jagannath Temple Mahaprasad & Odia Seafood Dhaba"
   }
 };
 

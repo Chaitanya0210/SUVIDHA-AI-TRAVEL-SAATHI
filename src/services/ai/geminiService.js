@@ -8,13 +8,23 @@ const { optimizeRouteSequence } = require('../maps/routingService');
 const { getLandmarksForDestination } = require('../../utils/indianLandmarks');
 
 /**
- * Attaches geocoded activity stops and optimized route metrics to an itinerary day
+ * Fallback location image gallery
  */
-const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], dayIndex = 1) => {
+const DEFAULT_LOCATION_IMAGES = [
+  "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80"
+];
+
+/**
+ * Attaches geocoded activity stops, location image, and route metrics to an itinerary day
+ */
+const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], dayIndex = 1, destImages = []) => {
   const baseLat = destCoords.lat || 25.3176;
   const baseLng = destCoords.lng || 82.9739;
 
-  // Offsets for distinct stop locations around the destination
   const offsets = [
     { dLat: 0.0000, dLng: 0.0000 },
     { dLat: 0.0150, dLng: 0.0120 },
@@ -22,6 +32,10 @@ const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], d
     { dLat: 0.0080, dLng: -0.0150 },
     { dLat: -0.0180, dLng: -0.0100 }
   ];
+
+  const dayImage = (destImages && destImages.length > 0)
+    ? destImages[(dayIndex - 1) % destImages.length]
+    : DEFAULT_LOCATION_IMAGES[(dayIndex - 1) % DEFAULT_LOCATION_IMAGES.length];
 
   const rawStops = [
     {
@@ -58,6 +72,7 @@ const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], d
 
   return {
     ...dayItem,
+    imageUrl: dayItem.imageUrl || dayImage,
     routeMetrics: {
       totalDistanceKm: routeData.totalDistanceKm,
       estimatedTravelTimeMins: routeData.estimatedTravelTimeMins,
@@ -93,6 +108,7 @@ Return PURE VALID JSON with NO code fences outside:
       "country": "India",
       "stateOrRegion": "State Name",
       "category": "Beach/Mountain/Spiritual/Heritage",
+      "imageUrl": "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800",
       "estimatedBudget": {
         "min": 6000,
         "max": 15000,
@@ -129,6 +145,7 @@ Return PURE VALID JSON with NO code fences outside:
         country: "India",
         stateOrRegion: "Himachal Pradesh",
         category: "Mountain",
+        imageUrl: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80",
         estimatedBudget: { min: 8000, max: 18000, currency: "INR" },
         bestTimeToVisit: "October to June",
         highlights: ["Solang Valley Paragliding", "Hadimba Temple", "Atal Tunnel Expedition"],
@@ -142,6 +159,7 @@ Return PURE VALID JSON with NO code fences outside:
         country: "India",
         stateOrRegion: "Goa",
         category: "Beach",
+        imageUrl: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80",
         estimatedBudget: { min: 10000, max: 22000, currency: "INR" },
         bestTimeToVisit: "November to February",
         highlights: ["Baga & Palolem Beaches", "Dudhsagar Waterfalls", "Fontainhas Latin Heritage Walk"],
@@ -176,6 +194,7 @@ const generateStructuredAiItinerary = async ({ userPreferences, candidateDestina
   const landmarkInfo = getLandmarksForDestination(destName);
   const attractions = candidateDestination.topAttractions || (landmarkInfo ? landmarkInfo.topAttractions : null) || [`Famous ${destName} Landmark`, `Heritage Site in ${destName}`, `Local Market in ${destName}`];
   const destCoords = candidateDestination.coordinates || (landmarkInfo ? landmarkInfo.coordinates : { lat: 19.1383, lng: 77.3210 });
+  const coverImage = candidateDestination.imageUrl || (landmarkInfo ? landmarkInfo.imageUrl : DEFAULT_LOCATION_IMAGES[0]);
 
   let itineraryPlan = null;
 
@@ -190,7 +209,7 @@ Generate a structured ${duration}-day trip itinerary for "${destName}" (${candid
 CRITICAL INSTRUCTION FOR LANDMARKS & ATTRACTIONS:
 You MUST include the exact real-world iconic, historical, and religious landmarks of "${destName}".
 Target Known Landmarks for ${destName}: ${attractions.join(', ')}.
-For example, if destination is Nanded, you MUST explicitly include Takht Sachkhand Sri Hazur Abchalnagar Sahib Gurudwara and Gurudwara Shikar Ghat Sahib in the morning/afternoon schedule!
+For example, if destination is Nanded, you MUST explicitly include Takht Sachkhand Sri Hazur Abchalnagar Sahib Gurudwara & Gurudwara Shikar Ghat Sahib in the morning/afternoon schedule!
 Do NOT write generic placeholders like "City Center" or "Local Sightseeing". Name exact real-world monuments, temples, gurudwaras, forts, or beaches!
 
 INSTRUCTIONS:
@@ -200,6 +219,7 @@ INSTRUCTIONS:
 JSON SCHEMA REQUIREMENT:
 {
   "destination": "${destName}",
+  "imageUrl": "${coverImage}",
   "summary": "A concise 2-sentence summary highlighting why ${destName} was selected and its famous landmarks.",
   "matchReasoning": "Detailed explanation of how this trip satisfies the user's ${vibes.join(', ')} preferences.",
   "estimatedCost": {
@@ -214,6 +234,7 @@ JSON SCHEMA REQUIREMENT:
     {
       "day": 1,
       "title": "Day 1 Theme Title with exact landmark name",
+      "imageUrl": "${coverImage}",
       "morning": ["Morning visit to famous landmark in ${destName}"],
       "afternoon": ["Afternoon activity & local lunch recommendation"],
       "evening": ["Evening sightseeing or Aarti/Market walk"],
@@ -250,10 +271,12 @@ JSON SCHEMA REQUIREMENT:
     itineraryPlan = createIndianFallbackItinerary({ userPreferences, candidateDestination });
   }
 
-  // Attach geospatial route optimization to each day of the itinerary
+  const destImages = (landmarkInfo && landmarkInfo.locationImages) ? landmarkInfo.locationImages : [coverImage];
+
+  // Attach geospatial route optimization & location image to each day of the itinerary
   if (itineraryPlan && Array.isArray(itineraryPlan.days)) {
     itineraryPlan.days = itineraryPlan.days.map((day, idx) =>
-      attachGeospatialRouteToDay(day, destCoords, attractions, idx + 1)
+      attachGeospatialRouteToDay(day, destCoords, attractions, idx + 1, destImages)
     );
   }
 
@@ -261,7 +284,7 @@ JSON SCHEMA REQUIREMENT:
 };
 
 /**
- * Deterministic Indian Fallback Itinerary Generator with Real Landmarks
+ * Deterministic Indian Fallback Itinerary Generator with Real Landmarks & Location Images
  */
 const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }) => {
   const duration = userPreferences.duration || candidateDestination.idealDurationDays || 3;
@@ -271,6 +294,9 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
 
   const destName = candidateDestination.name || candidateDestination.destinationName || 'Nanded';
   const landmarkInfo = getLandmarksForDestination(destName);
+
+  const coverImage = candidateDestination.imageUrl || (landmarkInfo ? landmarkInfo.imageUrl : DEFAULT_LOCATION_IMAGES[0]);
+  const destImages = (landmarkInfo && landmarkInfo.locationImages) ? landmarkInfo.locationImages : [coverImage];
 
   const attractions = (candidateDestination.topAttractions && candidateDestination.topAttractions.length > 0)
     ? candidateDestination.topAttractions
@@ -292,10 +318,12 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
   for (let i = 1; i <= duration; i++) {
     const mainAttraction = attractions[(i - 1) % attractions.length];
     const secondaryAttraction = attractions[i % attractions.length] || mainAttraction;
+    const dayImg = destImages[(i - 1) % destImages.length];
 
     daysArray.push({
       day: i,
       title: `Day ${i}: ${mainAttraction} & ${destName} Exploration`,
+      imageUrl: dayImg,
       morning: [`Darshan & morning visit to ${mainAttraction}`, `Explore surrounding historical heritage & sacred premises in ${destName}`],
       afternoon: [`Enjoy authentic local lunch at ${landmarkInfo ? landmarkInfo.foodSpot : 'popular Dhaba/Thali center'}`, `Relaxed afternoon visit to ${secondaryAttraction}`],
       evening: [`Sunset view at Godavari Ghat & evening Aarti/Prayer`, `Dinner at recommended local food trail spot in ${destName}`],
@@ -306,6 +334,7 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
 
   return {
     destination: destName,
+    imageUrl: coverImage,
     summary: `${destName} is an exceptional spiritual and historical destination in ${candidateDestination.stateOrRegion || 'Maharashtra, India'}, world-famous for ${attractions[0]} and sacred cultural heritage.`,
     matchReasoning: `This itinerary scores ${candidateDestination.matchScore || 95}% compatibility with your preferences, highlighting ${attractions[0]} and fitting comfortably within your ${budgetLevel} budget.`,
     estimatedCost,

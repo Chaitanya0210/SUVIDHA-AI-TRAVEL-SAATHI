@@ -249,7 +249,7 @@ function renderDestinationsGrid(items) {
             </div>
             <div style="display: flex; gap: 0.5rem;">
               <button class="btn btn-outline" style="padding: 0.4rem 0.6rem;" onclick="toggleBookmark('${d.name}')" aria-label="Save to wishlist">
-                <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-heart" style="color: ${isBookmarked ? 'var(--accent-coral)' : 'inherit'}"></i>
+                <i class="${isBookmarked ? 'fa-solid' : 'fa-heart'}" style="color: ${isBookmarked ? 'var(--accent-coral)' : 'inherit'}"></i>
               </button>
               <button class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;" onclick="selectDestinationForPlanner('${d.name}')">
                 Plan Trip
@@ -292,7 +292,7 @@ function showSteppedLoadingModal() {
 
   const steps = [
     { progress: '35%', title: 'Finding Destinations...', status: 'Analyzing your travel preferences & ₹ budget target...' },
-    { progress: '60%', title: 'Building Your Itinerary...', status: 'Composing personalized day-by-day activities...' },
+    { progress: '60%', title: 'Building Your Itinerary...', status: 'Composing personalized day-by-day activities & location photos...' },
     { progress: '85%', title: 'Optimizing Your Route...', status: 'Calculating commute distances & local Dhaba trails...' }
   ];
 
@@ -442,7 +442,7 @@ function renderItineraryView(plan) {
       </div>
     </div>
 
-    <!-- Day Wise Schedule List -->
+    <!-- Day Wise Schedule List with Location Photos -->
     <div class="itinerary-timeline" id="itinerary-days-container">
       ${renderDayCards(days)}
     </div>
@@ -471,13 +471,21 @@ function renderDayCards(days) {
     const afternoonText = Array.isArray(dayItem.afternoon) ? dayItem.afternoon.join(', ') : dayItem.afternoon;
     const eveningText = Array.isArray(dayItem.evening) ? dayItem.evening.join(', ') : dayItem.evening;
     const metrics = dayItem.routeMetrics;
+    const dayImg = dayItem.imageUrl || 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800';
 
     return `
-      <div class="glass-panel" style="padding: 1rem 1.2rem; margin-bottom: 1rem; border-left: 4px solid var(--brand-blue); background: #ffffff;">
+      <div class="glass-panel" style="padding: 1.2rem; margin-bottom: 1.5rem; border-left: 5px solid var(--brand-blue); background: #ffffff; border-radius: 16px; box-shadow: var(--shadow-card); overflow: hidden;">
+        <div style="height: 180px; margin: -1.2rem -1.2rem 1rem -1.2rem; overflow: hidden; position: relative;">
+          <img src="${dayImg}" alt="${dayItem.title || `Day ${dayItem.day}`}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;" onerror="this.src='https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800'">
+          <span style="position: absolute; bottom: 10px; left: 12px; background: rgba(15,23,42,0.75); color: #fff; padding: 0.3rem 0.8rem; border-radius: 20px; font-weight: 800; font-size: 0.82rem; backdrop-filter: blur(8px);">
+            📍 Day ${dayItem.day} Location Preview
+          </span>
+        </div>
+
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
-          <h4 style="font-size: 1.1rem; color: var(--brand-blue); font-weight: 800;">${dayItem.title || `Day ${dayItem.day}`}</h4>
+          <h4 style="font-size: 1.15rem; color: var(--brand-blue); font-weight: 800;">${dayItem.title || `Day ${dayItem.day}`}</h4>
           ${metrics ? `
-            <span style="font-size: 0.75rem; background: var(--brand-blue-light); color: var(--brand-blue); padding: 0.2rem 0.6rem; border-radius: 8px; font-weight: 700;">
+            <span style="font-size: 0.75rem; background: var(--brand-blue-light); color: var(--brand-blue); padding: 0.25rem 0.7rem; border-radius: 8px; font-weight: 700;">
               🚗 ${metrics.totalDistanceKm} km • ${metrics.estimatedTravelTimeMins} mins est. commute (₹${metrics.estimatedTransportCostInr})
             </span>
           ` : ''}
