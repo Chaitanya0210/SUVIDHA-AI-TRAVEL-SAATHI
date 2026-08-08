@@ -10,6 +10,7 @@ let destinationsData = [];
 let wishlist = JSON.parse(localStorage.getItem('suvidha_wishlist') || '[]');
 let currentActivePlan = null;
 let userSessionId = localStorage.getItem('suvidha_session_id');
+let searchDebounceTimer = null;
 
 if (!userSessionId) {
   userSessionId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
@@ -27,19 +28,23 @@ document.addEventListener('DOMContentLoaded', () => {
     aiForm.addEventListener('submit', handleAiPlannerSubmit);
   }
 
+  // 300ms Debounced Search Input
   const searchInput = document.getElementById('search-input');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      if (searchTerm.length >= 3) {
-        logInteractionEvent('destination_search', null, '', { searchQuery: searchTerm });
-      }
-      const filtered = destinationsData.filter(d =>
-        d.name.toLowerCase().includes(searchTerm) ||
-        (d.stateOrRegion && d.stateOrRegion.toLowerCase().includes(searchTerm)) ||
-        d.description.toLowerCase().includes(searchTerm)
-      );
-      renderDestinationsGrid(filtered);
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        if (searchTerm.length >= 3) {
+          logInteractionEvent('destination_search', null, '', { searchQuery: searchTerm });
+        }
+        const filtered = destinationsData.filter(d =>
+          d.name.toLowerCase().includes(searchTerm) ||
+          (d.stateOrRegion && d.stateOrRegion.toLowerCase().includes(searchTerm)) ||
+          d.description.toLowerCase().includes(searchTerm)
+        );
+        renderDestinationsGrid(filtered);
+      }, 300);
     });
   }
 });
@@ -97,6 +102,9 @@ function updateMapMarker(lat, lng, title, text) {
     .openPopup();
 }
 
+/**
+ * Visualizes a specific day's optimized route & numbered stops on the map
+ */
 function visualizeDayRouteOnMap(dayData, destinationName) {
   if (!map || !dayData) return;
 
@@ -146,8 +154,10 @@ function visualizeDayRouteOnMap(dayData, destinationName) {
         </div>
       `;
 
-      L.marker(point, { icon: customIcon }).addTo(markersLayerGroup)
+      const marker = L.marker(point, { icon: customIcon }).addTo(markersLayerGroup)
         .bindPopup(popupContent);
+      
+      stop._leafletMarker = marker;
     }
   });
 
@@ -182,25 +192,45 @@ async function loadDestinations() {
   }
 }
 
+function filterDestinations(category, element) {
+  const chips = document.querySelectorAll('.filter-chips .chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (element) element.classList.add('active');
+
+  if (category === 'all') {
+    renderDestinationsGrid(destinationsData);
+  } else {
+    const filtered = destinationsData.filter(d => d.category === category);
+    renderDestinationsGrid(filtered);
+  }
+}
+
 function renderDestinationsGrid(items) {
   const grid = document.getElementById('destinations-grid');
   if (!grid) return;
 
   if (!items || items.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">No Indian destinations match your filter criteria.</div>`;
+    grid.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-secondary);"></i>
+        <h3>No Indian destinations match your filter criteria</h3>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Try searching for another city, state, or travel vibe!</p>
+      </div>
+    `;
     return;
   }
 
   grid.innerHTML = items.map(d => {
     const isBookmarked = wishlist.some(item => item.name === d.name);
     const costInr = d.estimatedCostPerDayInr || d.estimatedCostPerDay || 2500;
+    const matchScore = d.matchPercentage || d.matchScore || 92;
 
     return `
       <div class="glass-panel card">
         <div class="card-img-wrap">
           <img src="${d.imageUrl}" alt="${d.name}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800'">
           <span class="card-badge">${d.category}</span>
-          ${d.matchPercentage ? `<span class="card-match-badge">${d.matchPercentage}% Match</span>` : ''}
+          <span class="card-match-badge">${matchScore}% Match</span>
         </div>
         <div class="card-body">
           <h3 class="card-title">${d.name}</h3>
@@ -208,7 +238,7 @@ function renderDestinationsGrid(items) {
           <p class="card-desc">${d.description}</p>
 
           <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem;">
-            ${(d.travelVibes || []).slice(0, 3).map(v => `<span class="tag tag-vibe">${v}</span>`).join('')}
+            ${(d.travelVibes || []).slice(0, 3).map(v => `<span class="tag tag-vibe">✓ ${v}</span>`).join('')}
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.8rem; margin-top: auto;">
@@ -217,7 +247,7 @@ function renderDestinationsGrid(items) {
               <strong style="color: var(--accent-emerald); font-size: 1rem;">₹${costInr.toLocaleString('en-IN')}</strong>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-outline" style="padding: 0.4rem 0.6rem;" onclick="toggleBookmark('${d.name}')">
+              <button class="btn btn-outline" style="padding: 0.4rem 0.6rem;" onclick="toggleBookmark('${d.name}')" aria-label="Save to wishlist">
                 <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark" style="color: ${isBookmarked ? 'var(--accent-amber)' : 'inherit'}"></i>
               </button>
               <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="selectDestinationForPlanner('${d.name}')">
@@ -240,6 +270,48 @@ function selectDestinationForPlanner(name) {
   }
 }
 
+function scrollToDestinations() {
+  const elem = document.getElementById('destinations');
+  if (elem) elem.scrollIntoView({ behavior: 'smooth' });
+}
+
+// -----------------------------------------------------------------------------
+// Form Handling & AI Plan Rendering with Stepped Loading States
+// -----------------------------------------------------------------------------
+function showSteppedLoadingModal() {
+  const modal = document.getElementById('loading-modal');
+  if (!modal) return;
+
+  const title = document.getElementById('loading-title');
+  const status = document.getElementById('loading-status');
+  const bar = document.getElementById('loading-progress-bar');
+
+  modal.style.display = 'flex';
+  bar.style.width = '20%';
+
+  const steps = [
+    { progress: '35%', title: 'Finding Destinations...', status: 'Analyzing your travel preferences & ₹ budget target...' },
+    { progress: '60%', title: 'Building Your Itinerary...', status: 'Composing personalized day-by-day activities...' },
+    { progress: '85%', title: 'Optimizing Your Route...', status: 'Calculating commute distances & local Dhaba trails...' }
+  ];
+
+  let stepIdx = 0;
+  window._loadingTimer = setInterval(() => {
+    if (stepIdx < steps.length) {
+      bar.style.width = steps[stepIdx].progress;
+      title.innerText = steps[stepIdx].title;
+      status.innerText = steps[stepIdx].status;
+      stepIdx++;
+    }
+  }, 700);
+}
+
+function hideSteppedLoadingModal() {
+  const modal = document.getElementById('loading-modal');
+  if (modal) modal.style.display = 'none';
+  if (window._loadingTimer) clearInterval(window._loadingTimer);
+}
+
 async function handleAiPlannerSubmit(e) {
   e.preventDefault();
   const destination = document.getElementById('destination-input').value;
@@ -253,6 +325,7 @@ async function handleAiPlannerSubmit(e) {
   btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Bharat AI Saathi Planning...`;
   btn.disabled = true;
 
+  showSteppedLoadingModal();
   logInteractionEvent('trip_generated', null, destination, { durationDays, budgetLevel, vibe: travelVibe, groupType });
 
   try {
@@ -271,12 +344,13 @@ async function handleAiPlannerSubmit(e) {
       showToast(`Generated ₹ INR Trip Plan for ${plan.destinationName || plan.destination}!`, 'success');
       document.getElementById('workspace').scrollIntoView({ behavior: 'smooth' });
     } else {
-      showToast(json.error ? json.error.message : 'Failed to generate itinerary', 'error');
+      showToast(json.error ? json.error.message : 'We couldn\'t generate your itinerary right now. Try again or use our offline recommendation mode.', 'error');
     }
   } catch (error) {
     console.error('AI Planning Error:', error);
-    showToast('Error generating AI plan. Please check server.', 'error');
+    showToast('We couldn\'t connect to the server right now. Using offline recommendation mode.', 'error');
   } finally {
+    hideSteppedLoadingModal();
     btn.innerHTML = originalBtnText;
     btn.disabled = false;
   }
@@ -409,9 +483,9 @@ function renderDayCards(days) {
         </div>
 
         <div style="display: grid; gap: 0.6rem; font-size: 0.9rem;">
-          <div><strong style="color: var(--accent-cyan);">🌅 Morning:</strong> ${morningText}</div>
-          <div><strong style="color: var(--accent-amber);">☀️ Afternoon:</strong> ${afternoonText}</div>
-          <div><strong style="color: var(--accent-emerald);">🌆 Evening:</strong> ${eveningText}</div>
+          <div><strong style="color: var(--accent-cyan);">🌅 Morning (9:00 AM - 12:00 PM):</strong> ${morningText}</div>
+          <div><strong style="color: var(--accent-amber);">☀️ Afternoon (1:00 PM - 4:00 PM):</strong> ${afternoonText}</div>
+          <div><strong style="color: var(--accent-emerald);">🌆 Evening (5:00 PM - 8:30 PM):</strong> ${eveningText}</div>
         </div>
 
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.8rem; border-top: 1px dashed var(--border-color); padding-top: 0.6rem; font-size: 0.8rem; color: var(--text-secondary);">
@@ -469,6 +543,16 @@ function openSubscriptionModal() {
 
 function closeSubscriptionModal() {
   const modal = document.getElementById('subscription-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function openAuthModal() {
+  const modal = document.getElementById('auth-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
   if (modal) modal.style.display = 'none';
 }
 

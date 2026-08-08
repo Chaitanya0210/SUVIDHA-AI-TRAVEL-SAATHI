@@ -23,9 +23,9 @@
     <!-- ----------------------------------------------------------------------- -->
     <!-- Navigation Bar                                                          -->
     <!-- ----------------------------------------------------------------------- -->
-    <nav class="navbar">
-        <a href="#" class="logo">
-            <i class="fa-solid fa-om" style="color: var(--accent-amber);"></i>
+    <nav class="navbar" role="navigation" aria-label="Main Navigation">
+        <a href="#" class="logo" aria-label="SUVIDHA AI Bharat Saathi Home">
+            <i class="fa-solid fa-om" style="color: var(--accent-amber);" aria-hidden="true"></i>
             SUVIDHA <span class="logo-badge">BHARAT SAATHI</span>
         </a>
         <ul class="nav-links">
@@ -34,19 +34,19 @@
             <li><a href="#workspace">Map & Itinerary</a></li>
             <li><a href="#destinations">Explore Spots</a></li>
             <li>
-                <button class="btn btn-gold" onclick="openPremiumModal()">
-                    <i class="fa-solid fa-crown"></i> Go Premium
+                <button class="btn btn-gold" onclick="openSubscriptionModal()" aria-label="Go Premium">
+                    <i class="fa-solid fa-crown" aria-hidden="true"></i> Go Premium
                 </button>
             </li>
             <li>
-                <button class="btn btn-secondary" id="wishlist-btn">
-                    <i class="fa-solid fa-bookmark" style="color: var(--accent-amber);"></i> Wishlist 
-                    <span id="wishlist-count" style="background: var(--accent-emerald); color: #000; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">0</span>
+                <button class="btn btn-secondary" id="wishlist-btn" onclick="scrollToDestinations()" aria-label="View Wishlist">
+                    <i class="fa-solid fa-bookmark" style="color: var(--accent-amber);" aria-hidden="true"></i> Wishlist 
+                    <span id="wishlist-badge" style="background: var(--accent-emerald); color: #000; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">0</span>
                 </button>
             </li>
             <li id="auth-nav-item">
-                <button class="btn btn-primary" onclick="openAuthModal()">
-                    <i class="fa-solid fa-user"></i> Login / Register
+                <button class="btn btn-primary" onclick="openAuthModal()" aria-label="Login or Register" id="user-profile-btn">
+                    <i class="fa-solid fa-user" aria-hidden="true"></i> Login / Register
                 </button>
             </li>
         </ul>
@@ -57,7 +57,7 @@
     <!-- ----------------------------------------------------------------------- -->
     <section class="hero" id="hero">
         <div class="hero-tagline">
-            <i class="fa-solid fa-flag-usa" style="display:none;"></i> 🇮🇳 AAPKA APNA BHARAT TRAVEL SAATHI • DESH DEKHO
+            🇮🇳 AAPKA APNA BHARAT TRAVEL SAATHI • DESH DEKHO
         </div>
         <h1 class="hero-title">
             Smart & Accurate <span>AI Travel Engine</span> <br>Built Specially For Indian Travelers
@@ -68,31 +68,32 @@
     </section>
 
     <!-- ----------------------------------------------------------------------- -->
-    <!-- AI Travel Planner Wizard Card (Indian Tailored)                          -->
+    <!-- AI Travel Planner Wizard Card                                           -->
     <!-- ----------------------------------------------------------------------- -->
     <section class="container" id="ai-wizard">
         <div class="glass-panel wizard-card">
             <h2 class="wizard-title">
-                <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-amber);"></i>
+                <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-amber);" aria-hidden="true"></i>
                 Generate Your Customized Indian Trip Plan
             </h2>
             <form id="ai-planner-form">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="destination-input"><i class="fa-solid fa-location-dot"></i> Destination (City / State)</label>
+                        <label for="destination-input"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Destination (City / State)</label>
                         <input type="text" id="destination-input" class="form-input" placeholder="e.g. Varanasi, Manali, Jaipur, Goa, Kerala" required value="Varanasi (Kashi)">
                     </div>
                     <div class="form-group">
-                        <label for="duration-select"><i class="fa-solid fa-calendar-days"></i> Trip Duration</label>
-                        <select id="duration-select" class="form-select">
+                        <label for="days-select"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Trip Duration</label>
+                        <select id="days-select" class="form-select">
                             <option value="2">2 Days (Weekend Trip)</option>
                             <option value="3" selected>3 Days (Short Vacation)</option>
+                            <option value="4">4 Days (Extended Trip)</option>
                             <option value="5">5 Days (Full Exploration)</option>
                             <option value="7">7 Days (Week Expedition)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="budget-select"><i class="fa-solid fa-indian-rupee-sign"></i> Budget Range (per day)</label>
+                        <label for="budget-select"><i class="fa-solid fa-indian-rupee-sign" aria-hidden="true"></i> Budget Range (per day)</label>
                         <select id="budget-select" class="form-select">
                             <option value="Pocket-Friendly">Pocket-Friendly (₹1,200 - ₹1,800/day)</option>
                             <option value="Standard" selected>Standard AC (₹3,000 - ₹4,500/day)</option>
@@ -100,7 +101,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="vibe-select"><i class="fa-solid fa-heart"></i> Travel Vibe / Type</label>
+                        <label for="vibe-select"><i class="fa-solid fa-heart" aria-hidden="true"></i> Travel Vibe / Type</label>
                         <select id="vibe-select" class="form-select">
                             <option value="Spiritual" selected>🛕 Teerth Yatra & Spiritual</option>
                             <option value="Himalayan Trek">⛰️ Himalayan Trek & Snow</option>
@@ -111,7 +112,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="group-select"><i class="fa-solid fa-users"></i> Travel Group</label>
+                        <label for="group-select"><i class="fa-solid fa-users" aria-hidden="true"></i> Travel Group</label>
                         <select id="group-select" class="form-select">
                             <option value="Family" selected>Family & Parents</option>
                             <option value="Friends">Friends Gang (YJHD vibes)</option>
@@ -123,10 +124,10 @@
 
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div style="font-size: 0.85rem; color: var(--text-muted);">
-                        <i class="fa-solid fa-train" style="color: var(--accent-cyan);"></i> Includes IRCTC Train/Vande Bharat & Dhaba recommendations
+                        <i class="fa-solid fa-train" style="color: var(--accent-cyan);" aria-hidden="true"></i> Includes IRCTC Train/Vande Bharat & Dhaba recommendations
                     </div>
                     <button type="submit" class="btn btn-primary" id="generate-btn">
-                        <i class="fa-solid fa-bolt"></i> Generate Plan in ₹ INR
+                        <i class="fa-solid fa-bolt" aria-hidden="true"></i> Generate Plan in ₹ INR
                     </button>
                 </div>
             </form>
@@ -142,8 +143,8 @@
                 <h2 class="section-title">Interactive Map & Day-by-Day Plan</h2>
                 <p style="color: var(--text-secondary);">Live map pins, transport routes, and daily cost breakdowns in ₹ INR</p>
             </div>
-            <button class="btn btn-secondary" onclick="window.print()">
-                <i class="fa-solid fa-print"></i> Export / Print Itinerary
+            <button class="btn btn-secondary" onclick="window.print()" aria-label="Export or Print Itinerary">
+                <i class="fa-solid fa-print" aria-hidden="true"></i> Export / Print Itinerary
             </button>
         </div>
 
@@ -154,7 +155,7 @@
             <!-- AI Itinerary Output View -->
             <div class="glass-panel itinerary-view" id="itinerary-output">
                 <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);" id="itinerary-placeholder">
-                    <i class="fa-solid fa-map-location-dot" style="font-size: 3rem; color: var(--accent-amber); margin-bottom: 1rem;"></i>
+                    <i class="fa-solid fa-map-location-dot" style="font-size: 3rem; color: var(--accent-amber); margin-bottom: 1rem;" aria-hidden="true"></i>
                     <h3>Aapka Customized Travel Plan Yahan Dikhega</h3>
                     <p style="margin-top: 0.5rem;">Fill out the form above and click <strong>Generate Plan in ₹ INR</strong>!</p>
                 </div>
@@ -172,7 +173,7 @@
                 <p style="color: var(--text-secondary);">Browse top destinations tailored for Indian travelers</p>
             </div>
             <div style="display: flex; gap: 1rem;">
-                <input type="text" id="search-input" class="form-input" placeholder="🔍 Search Indian city/state..." style="min-width: 240px;">
+                <input type="text" id="search-input" class="form-input" placeholder="🔍 Search Indian city/state..." style="min-width: 240px;" aria-label="Search destinations">
             </div>
         </div>
 
@@ -191,17 +192,29 @@
         </div>
     </section>
 
-    <!-- Detail Modal -->
-    <div class="modal-overlay" id="detail-modal">
-        <div class="glass-panel modal-content" id="modal-content-body">
-            <button class="close-btn" onclick="closeModal('detail-modal')">&times;</button>
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Progressive Stepped AI Loading Modal                                    -->
+    <!-- ----------------------------------------------------------------------- -->
+    <div class="modal-overlay" id="loading-modal">
+        <div class="glass-panel modal-content" style="max-width: 460px; text-align: center;">
+            <div style="font-size: 2.5rem; color: var(--accent-amber); margin-bottom: 1rem;">
+                <i class="fa-solid fa-compass fa-spin" aria-hidden="true"></i>
+            </div>
+            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;" id="loading-title">Building Your Itinerary...</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;" id="loading-status">
+                Analyzing your travel preferences & budget target...
+            </p>
+            <div style="background: rgba(255,255,255,0.06); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 1rem;">
+                <div id="loading-progress-bar" style="background: var(--gradient-main); height: 100%; width: 20%; transition: width 0.4s ease;"></div>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">SUVIDHA AI BHARAT TRAVEL ENGINE</span>
         </div>
     </div>
 
     <!-- Auth Modal -->
     <div class="modal-overlay" id="auth-modal">
         <div class="glass-panel modal-content" style="max-width: 420px;">
-            <button class="close-btn" onclick="closeModal('auth-modal')">&times;</button>
+            <button class="close-btn" onclick="closeModal('auth-modal')" aria-label="Close Auth Modal">&times;</button>
             <h2 style="margin-bottom: 1rem; text-align: center;" id="auth-modal-title">Welcome Back</h2>
             
             <form id="auth-form" onsubmit="handleAuthSubmit(event)">
@@ -230,12 +243,10 @@
         </div>
     </div>
 
-    <!-- ----------------------------------------------------------------------- -->
-    <!-- Premium Gold Subscription & Booking Suite Modal                        -->
-    <!-- ----------------------------------------------------------------------- -->
-    <div class="modal-overlay" id="premium-modal">
+    <!-- Premium Subscription Modal -->
+    <div class="modal-overlay" id="subscription-modal">
         <div class="glass-panel modal-content" style="max-width: 780px;">
-            <button class="close-btn" onclick="closeModal('premium-modal')">&times;</button>
+            <button class="close-btn" onclick="closeSubscriptionModal()" aria-label="Close Subscription Modal">&times;</button>
             
             <div style="text-align: center; margin-bottom: 2rem;">
                 <span class="gold-badge" style="font-size: 0.9rem; padding: 0.3rem 1rem;">👑 SUVIDHA SAATHI GOLD CLUB</span>
@@ -283,7 +294,7 @@
 
             <!-- Simulated Payment Checkout Footer -->
             <div style="background: rgba(255,255,255,0.03); border: 1px dashed var(--accent-gold); padding: 1rem; border-radius: 10px; text-align: center; font-size: 0.85rem; color: var(--text-secondary);">
-                <i class="fa-solid fa-lock" style="color: var(--accent-emerald);"></i> 100% Secure Razorpay & Instant UPI Payment Integration (GPay, PhonePe, Paytm, BHIM, Cards)
+                <i class="fa-solid fa-lock" style="color: var(--accent-emerald);" aria-hidden="true"></i> 100% Secure Razorpay & Instant UPI Payment Integration (GPay, PhonePe, Paytm, BHIM, Cards)
             </div>
         </div>
     </div>
