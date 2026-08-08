@@ -4,9 +4,11 @@
 
 let map = null;
 let currentMarker = null;
+let routePolylineLayer = null;
+let markersLayerGroup = null;
 let destinationsData = [];
 let wishlist = JSON.parse(localStorage.getItem('suvidha_wishlist') || '[]');
-let isRegisterMode = false;
+let currentActivePlan = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
@@ -37,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // Leaflet OpenStreetMap Initialization
 // -----------------------------------------------------------------------------
 function initMap() {
-  // Center map over India (Lat: 20.5937, Lng: 78.9629)
   map = L.map('map').setView([20.5937, 78.9629], 5);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -45,20 +46,96 @@ function initMap() {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
 
-  currentMarker = L.marker([25.3176, 82.9739]).addTo(map)
+  markersLayerGroup = L.layerGroup().addTo(map);
+  routePolylineLayer = L.layerGroup().addTo(map);
+
+  currentMarker = L.marker([25.3176, 82.9739]).addTo(markersLayerGroup)
     .bindPopup('<b>SUVIDHA AI BHARAT SAATHI</b><br>Varanasi (Kashi) - Sacred Ganga Ghats & Temples')
     .openPopup();
 }
 
 function updateMapMarker(lat, lng, title, text) {
   if (!map) return;
+  markersLayerGroup.clearLayers();
+  routePolylineLayer.clearLayers();
+
   map.setView([lat, lng], 11, { animate: true });
-  if (currentMarker) {
-    map.removeLayer(currentMarker);
-  }
-  currentMarker = L.marker([lat, lng]).addTo(map)
+  currentMarker = L.marker([lat, lng]).addTo(markersLayerGroup)
     .bindPopup(`<b>${title}</b><br>${text}`)
     .openPopup();
+}
+
+/**
+ * Visualizes a specific day's optimized route & numbered stops on the map
+ */
+function visualizeDayRouteOnMap(dayData, destinationName) {
+  if (!map || !dayData) return;
+
+  markersLayerGroup.clearLayers();
+  routePolylineLayer.clearLayers();
+
+  const stops = dayData.stops || [];
+  if (!stops || stops.length === 0) {
+    if (currentActivePlan && currentActivePlan.coordinates) {
+      updateMapMarker(currentActivePlan.coordinates.lat, currentActivePlan.coordinates.lng, destinationName || 'Destination', 'Day Route View');
+    }
+    return;
+  }
+
+  const latLngs = [];
+  const bounds = [];
+
+  const categoryColors = {
+    'Hotel': '#6366f1',
+    'Attraction': '#f59e0b',
+    'Restaurant': '#f43f5e',
+    'Sunset Point': '#10b981',
+    'Transit': '#06b6d4'
+  };
+
+  stops.forEach((stop, index) => {
+    if (stop.lat !== undefined && stop.lng !== undefined) {
+      const point = [stop.lat, stop.lng];
+      latLngs.push(point);
+      bounds.push(point);
+
+      const color = categoryColors[stop.category] || '#6366f1';
+      const stopNumber = stop.stopOrder || (index + 1);
+
+      // Custom Numbered HTML Marker Icon
+      const customIcon = L.divIcon({
+        className: 'custom-leaflet-marker',
+        html: `<div style="background-color:${color}; color:#fff; border:2px solid #fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; box-shadow:0 3px 6px rgba(0,0,0,0.4);">${stopNumber}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const popupContent = `
+        <div style="font-family: system-ui, sans-serif; padding:4px;">
+          <strong style="color:${color}; font-size:14px;">Stop ${stopNumber}: ${stop.name}</strong><br>
+          <span style="font-size:11px; color:#666;">Category: ${stop.category || 'Sightseeing'} • Est. ${stop.estimatedDurationMinutes || 45} mins</span>
+          ${stop.legDistanceKm ? `<br><small style="color:#10b981;">🚗 Leg Distance: ${stop.legDistanceKm} km (${stop.legDurationMins} mins)</small>` : ''}
+        </div>
+      `;
+
+      L.marker(point, { icon: customIcon }).addTo(markersLayerGroup)
+        .bindPopup(popupContent);
+    }
+  });
+
+  // Draw Route Line connecting stops
+  if (latLngs.length > 1) {
+    const polyline = L.polyline(latLngs, {
+      color: '#6366f1',
+      weight: 4,
+      opacity: 0.8,
+      dashArray: '6, 8'
+    }).addTo(routePolylineLayer);
+
+    map.fitBounds(L.latLngBounds(bounds).pad(0.25));
+  } else if (bounds.length > 0) {
+    map.setView(bounds[0], 12);
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -68,7 +145,7 @@ async function loadDestinations() {
   try {
     const res = await fetch('/api/destinations');
     const json = await res.json();
-    if (json.status === 'success') {
+    if (json.status === 'success' || json.success) {
       destinationsData = json.data;
       renderDestinationsGrid(destinationsData);
     }
@@ -99,26 +176,26 @@ function renderDestinationsGrid(items) {
           ${d.matchPercentage ? `<span class="card-match-badge">${d.matchPercentage}% Match</span>` : ''}
         </div>
         <div class="card-body">
-          <div class="card-title-wrap">
-            <h3 class="card-title">${d.name}</h3>
-            <span class="card-rating"><i class="fa-solid fa-star"></i> ${d.rating || 4.8}</span>
-          </div>
-          <div style="font-size: 0.8rem; color: var(--accent-cyan); font-weight: 600; margin-bottom: 0.4rem;">
-            📍 ${d.stateOrRegion || 'India'}, India
-          </div>
+          <h3 class="card-title">${d.name}</h3>
+          <p class="card-region">📍 ${d.stateOrRegion || d.state || 'India'}</p>
           <p class="card-desc">${d.description}</p>
-          
-          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem;">
-            ${(d.travelVibes || []).map(v => `<span style="font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 0.2rem 0.6rem; border-radius: 12px; color: var(--accent-amber);">${v}</span>`).join('')}
+
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem;">
+            ${(d.travelVibes || []).slice(0, 3).map(v => `<span class="tag tag-vibe">${v}</span>`).join('')}
           </div>
 
-          <div class="card-meta">
-            <div class="card-price">₹${costInr.toLocaleString('en-IN')} <span>/ day est.</span></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.8rem; margin-top: auto;">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">DAILY EST.</span><br>
+              <strong style="color: var(--accent-emerald); font-size: 1rem;">₹${costInr.toLocaleString('en-IN')}</strong>
+            </div>
             <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-secondary" onclick="toggleBookmark('${d.name}')" title="Bookmark">
-                <i class="fa-${isBookmarked ? 'solid' : 'regular'} fa-bookmark" style="color: var(--accent-amber);"></i>
+              <button class="btn btn-outline" style="padding: 0.4rem 0.6rem;" onclick="toggleBookmark('${d.name}')">
+                <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark" style="color: ${isBookmarked ? 'var(--accent-amber)' : 'inherit'}"></i>
               </button>
-              <button class="btn btn-primary" onclick="viewDestinationDetail('${d.name}')">Plan Trip</button>
+              <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="selectDestinationForPlanner('${d.name}')">
+                Plan Trip
+              </button>
             </div>
           </div>
         </div>
@@ -127,26 +204,21 @@ function renderDestinationsGrid(items) {
   }).join('');
 }
 
-function filterDestinations(category, element) {
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  if (element) element.classList.add('active');
-
-  if (category === 'all') {
-    renderDestinationsGrid(destinationsData);
-  } else {
-    const filtered = destinationsData.filter(d => d.category === category);
-    renderDestinationsGrid(filtered);
+// -----------------------------------------------------------------------------
+// Form Handling & AI Plan Rendering
+// -----------------------------------------------------------------------------
+function selectDestinationForPlanner(name) {
+  const destInput = document.getElementById('destination-input');
+  if (destInput) {
+    destInput.value = name;
+    document.getElementById('ai-planner-form').scrollIntoView({ behavior: 'smooth' });
   }
 }
 
-// -----------------------------------------------------------------------------
-// AI Planner Submission Handler
-// -----------------------------------------------------------------------------
 async function handleAiPlannerSubmit(e) {
   e.preventDefault();
-
   const destination = document.getElementById('destination-input').value;
-  const durationDays = document.getElementById('duration-select').value;
+  const durationDays = document.getElementById('days-select').value;
   const budgetLevel = document.getElementById('budget-select').value;
   const travelVibe = document.getElementById('vibe-select').value;
   const groupType = document.getElementById('group-select').value;
@@ -157,7 +229,7 @@ async function handleAiPlannerSubmit(e) {
   btn.disabled = true;
 
   try {
-    const response = await fetch('/api/ai-planner/generate-plan', {
+    const response = await fetch('/api/v1/ai-planner/generate-plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ destination, durationDays, budgetLevel, travelVibe, groupType })
@@ -165,17 +237,14 @@ async function handleAiPlannerSubmit(e) {
 
     const json = await response.json();
 
-    if (json.status === 'success') {
+    if (json.success || json.status === 'success') {
       const plan = json.data;
+      currentActivePlan = plan;
       renderItineraryView(plan);
-      if (plan.coordinates) {
-        updateMapMarker(plan.coordinates.lat, plan.coordinates.lng, plan.destinationName, `Custom ${plan.durationDays}-Day ${plan.travelVibe} Trip`);
-      }
-      showToast(`Generated ₹ INR Trip Plan for ${plan.destinationName}!`, 'success');
-      
+      showToast(`Generated ₹ INR Trip Plan for ${plan.destinationName || plan.destination}!`, 'success');
       document.getElementById('workspace').scrollIntoView({ behavior: 'smooth' });
     } else {
-      showToast(json.message || 'Failed to generate itinerary', 'error');
+      showToast(json.error ? json.error.message : 'Failed to generate itinerary', 'error');
     }
   } catch (error) {
     console.error('AI Planning Error:', error);
@@ -190,17 +259,19 @@ function renderItineraryView(plan) {
   const output = document.getElementById('itinerary-output');
   if (!output) return;
 
-  const totalCostInr = plan.estimatedTotalCostInr || plan.estimatedTotalCost || (plan.durationDays * 3500);
+  const totalCostInr = plan.estimatedCost ? plan.estimatedCost.total : (plan.estimatedTotalCostInr || plan.durationDays * 3500);
+  const destName = plan.destinationName || plan.destination || 'Destination';
+  const days = plan.days || plan.itinerary || [];
 
   output.innerHTML = `
     <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-        <h2 style="font-size: 1.6rem;">🇮🇳 ${plan.destinationName}, ${plan.stateOrRegion || 'India'}</h2>
+        <h2 style="font-size: 1.6rem;">🇮🇳 ${destName}</h2>
         <span style="background: var(--gradient-main); color: #000; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: 700; font-size: 0.85rem;">
-          ${plan.durationDays} Days • ${plan.budgetLevel}
+          ${plan.durationDays || days.length} Days • ${plan.budgetLevel}
         </span>
       </div>
-      <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem;">${plan.aiRationale}</p>
+      <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem;">${plan.summary || plan.aiRationale || ''}</p>
       
       <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; background: rgba(255,255,255,0.04); padding: 0.8rem 1rem; border-radius: 8px;">
         <div>
@@ -208,22 +279,10 @@ function renderItineraryView(plan) {
           <strong style="color: var(--accent-emerald); font-size: 1.3rem;">₹${totalCostInr.toLocaleString('en-IN')} INR</strong>
         </div>
         <div>
-          <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">TRAVEL VIBE</span>
-          <strong style="color: var(--accent-amber); font-size: 1.05rem;">${plan.travelVibe}</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">MATCH SCORE</span>
+          <strong style="color: var(--accent-amber); font-size: 1.05rem;">${plan.matchScore || 90}% Match</strong>
         </div>
       </div>
-
-      ${plan.transportAdvice ? `
-        <div style="margin-top: 0.75rem; font-size: 0.85rem; background: rgba(6, 182, 212, 0.1); border-left: 3px solid var(--accent-cyan); padding: 0.5rem 0.8rem; border-radius: 4px;">
-          <strong>🚂 Transport Advice:</strong> ${plan.transportAdvice}
-        </div>
-      ` : ''}
-
-      ${plan.foodAdvice ? `
-        <div style="margin-top: 0.5rem; font-size: 0.85rem; background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--accent-amber); padding: 0.5rem 0.8rem; border-radius: 4px;">
-          <strong>🍲 Food & Dhaba Trail:</strong> ${plan.foodAdvice}
-        </div>
-      ` : ''}
 
       <!-- Integrated Partner Booking Suite -->
       <div class="booking-suite-container">
@@ -235,302 +294,183 @@ function renderItineraryView(plan) {
         </div>
         
         <div class="partner-grid">
-          <a class="partner-card" onclick="handlePartnerClick('Ola', '${plan.destinationName}')">
+          <a class="partner-card" onclick="handlePartnerClick('Ola', '${destName}')">
             <span class="partner-icon">🚕</span>
             <strong>Ola Cabs</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Book Cab</span>
           </a>
-          <a class="partner-card" onclick="handlePartnerClick('Uber', '${plan.destinationName}')">
+          <a class="partner-card" onclick="handlePartnerClick('Uber', '${destName}')">
             <span class="partner-icon">🚘</span>
             <strong>Uber Cabs</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Book Cab</span>
           </a>
-          <a class="partner-card" onclick="handlePartnerClick('Rapido', '${plan.destinationName}')">
-            <span class="partner-icon">🛵</span>
-            <strong>Rapido Bike</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Quick Ride</span>
+          <a class="partner-card" onclick="handlePartnerClick('Swiggy', '${destName}')">
+            <span class="partner-icon">🍲</span>
+            <strong>Swiggy Food</strong>
           </a>
-          <a class="partner-card" onclick="handlePartnerClick('Swiggy', '${plan.destinationName}')">
+          <a class="partner-card" onclick="handlePartnerClick('Zomato', '${destName}')">
             <span class="partner-icon">🍕</span>
-            <strong>Swiggy</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Order Food</span>
+            <strong>Zomato Food</strong>
           </a>
-          <a class="partner-card" onclick="handlePartnerClick('Zomato', '${plan.destinationName}')">
-            <span class="partner-icon">🍔</span>
-            <strong>Zomato</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Order Food</span>
-          </a>
-          <a class="partner-card" onclick="handlePartnerClick('MakeMyTrip', '${plan.destinationName}')">
+          <a class="partner-card" onclick="handlePartnerClick('MakeMyTrip', '${destName}')">
             <span class="partner-icon">🏨</span>
-            <strong>MakeMyTrip</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Book Stays</span>
+            <strong>MMT Hotels</strong>
           </a>
-          <a class="partner-card" onclick="handlePartnerClick('RedBus', '${plan.destinationName}')">
+          <a class="partner-card" onclick="handlePartnerClick('RedBus', '${destName}')">
             <span class="partner-icon">🚌</span>
             <strong>RedBus</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Bus Tickets</span>
           </a>
-          <a class="partner-card" onclick="handlePartnerClick('IRCTC', '${plan.destinationName}')">
+          <a class="partner-card" onclick="handlePartnerClick('IRCTC', '${destName}')">
             <span class="partner-icon">🚆</span>
-            <strong>IRCTC</strong>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">Train Tickets</span>
+            <strong>IRCTC Trains</strong>
           </a>
         </div>
       </div>
     </div>
 
-    <div>
-      <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Day-by-Day Itinerary Schedule</h3>
-      ${plan.itinerary.map(day => `
-        <div class="itinerary-day-card">
-          <div class="itinerary-day-title">${day.theme}</div>
-          <div class="itinerary-slot"><strong>🌅 Morning:</strong> ${day.morning}</div>
-          <div class="itinerary-slot"><strong>☀️ Afternoon:</strong> ${day.afternoon}</div>
-          <div class="itinerary-slot"><strong>🌙 Evening:</strong> ${day.evening}</div>
-          <div style="margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap;">
-            <span><strong>Stay Recommendation:</strong> ${day.stay}</span>
-            <span style="color: var(--accent-emerald); font-weight: 600;">~₹${(day.estimatedDayCostInr || day.estimatedDayCost || 2500).toLocaleString('en-IN')}/day</span>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-// -----------------------------------------------------------------------------
-// Destination Detail Modal View
-// -----------------------------------------------------------------------------
-function viewDestinationDetail(name) {
-  const dest = destinationsData.find(d => d.name === name);
-  if (!dest) return;
-
-  const costInr = dest.estimatedCostPerDayInr || dest.estimatedCostPerDay || 2500;
-
-  const content = document.getElementById('modal-content-body');
-  content.innerHTML = `
-    <button class="close-btn" onclick="closeModal('detail-modal')">&times;</button>
-    <img src="${dest.imageUrl}" alt="${dest.name}" style="width: 100%; height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 1rem;">
-    <h2 style="font-size: 1.8rem; margin-bottom: 0.2rem;">${dest.name}</h2>
-    <div style="color: var(--accent-cyan); font-weight: 600; margin-bottom: 0.8rem;">📍 ${dest.stateOrRegion}, India</div>
-    <p style="color: var(--text-secondary); margin-bottom: 1rem;">${dest.description}</p>
-    
-    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; flex-wrap: wrap;">
-      <div><strong>Category:</strong> ${dest.category}</div>
-      <div><strong>Best Season:</strong> ${dest.bestSeasons ? dest.bestSeasons.join(', ') : 'Winter, Autumn'}</div>
-      <div><strong>Est Cost:</strong> ₹${costInr.toLocaleString('en-IN')}/day</div>
+    <!-- Day Route Selector Tabs -->
+    <div style="margin-bottom: 1.5rem;">
+      <h3 style="font-size: 1.1rem; margin-bottom: 0.6rem;">🗺️ Interactive Geospatial Route Visualization</h3>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;" id="day-selector-tabs">
+        ${days.map((dayItem, index) => `
+          <button class="btn ${index === 0 ? 'btn-primary' : 'btn-outline'}" 
+                  style="font-size: 0.85rem; padding: 0.4rem 0.9rem;" 
+                  onclick="selectDayForMapRoute(${index})">
+            Day ${dayItem.day || (index + 1)} Route
+          </button>
+        `).join('')}
+      </div>
     </div>
 
-    <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Top Attractions</h3>
-    <ul style="padding-left: 1.2rem; margin-bottom: 1.5rem; color: var(--text-secondary);">
-      ${(dest.topAttractions || ['Main Temple & Ghat Walk', 'Historic Fort & Museum', 'Local Market & Street Food']).map(a => `<li>${a}</li>`).join('')}
-    </ul>
-
-    <button class="btn btn-primary" onclick="closeModal('detail-modal'); document.getElementById('destination-input').value='${dest.name}'; handleAiPlannerSubmit(new Event('submit'));" style="width: 100%; justify-content: center;">
-      <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Custom ₹ INR Plan for ${dest.name}
-    </button>
+    <!-- Day Wise Schedule List -->
+    <div class="itinerary-timeline" id="itinerary-days-container">
+      ${renderDayCards(days)}
+    </div>
   `;
 
-  document.getElementById('detail-modal').classList.add('active');
-  if (dest.coordinates) {
-    updateMapMarker(dest.coordinates.lat, dest.coordinates.lng, dest.name, dest.description);
+  // Visualize Day 1 route by default
+  if (days.length > 0) {
+    visualizeDayRouteOnMap(days[0], destName);
   }
 }
 
-// -----------------------------------------------------------------------------
-// Wishlist & User State
-// -----------------------------------------------------------------------------
-function toggleBookmark(name) {
-  const dest = destinationsData.find(d => d.name === name);
-  if (!dest) return;
+function selectDayForMapRoute(dayIndex) {
+  if (!currentActivePlan || !currentActivePlan.days || !currentActivePlan.days[dayIndex]) return;
 
+  const tabs = document.querySelectorAll('#day-selector-tabs button');
+  tabs.forEach((tab, idx) => {
+    if (idx === dayIndex) {
+      tab.className = 'btn btn-primary';
+    } else {
+      tab.className = 'btn btn-outline';
+    }
+  });
+
+  const targetDay = currentActivePlan.days[dayIndex];
+  visualizeDayRouteOnMap(targetDay, currentActivePlan.destinationName || currentActivePlan.destination);
+}
+
+function renderDayCards(days) {
+  return days.map(dayItem => {
+    const morningText = Array.isArray(dayItem.morning) ? dayItem.morning.join(', ') : dayItem.morning;
+    const afternoonText = Array.isArray(dayItem.afternoon) ? dayItem.afternoon.join(', ') : dayItem.afternoon;
+    const eveningText = Array.isArray(dayItem.evening) ? dayItem.evening.join(', ') : dayItem.evening;
+    const metrics = dayItem.routeMetrics;
+
+    return `
+      <div class="glass-panel" style="padding: 1rem 1.2rem; margin-bottom: 1rem; border-left: 4px solid var(--accent-amber);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+          <h4 style="font-size: 1.1rem; color: var(--accent-amber);">${dayItem.title || `Day ${dayItem.day}`}</h4>
+          ${metrics ? `
+            <span style="font-size: 0.75rem; background: rgba(16,185,129,0.15); color: var(--accent-emerald); padding: 0.2rem 0.6rem; border-radius: 8px; font-weight: 600;">
+              🚗 ${metrics.totalDistanceKm} km • ${metrics.estimatedTravelTimeMins} mins est. commute (₹${metrics.estimatedTransportCostInr})
+            </span>
+          ` : ''}
+        </div>
+
+        <div style="display: grid; gap: 0.6rem; font-size: 0.9rem;">
+          <div><strong style="color: var(--accent-cyan);">🌅 Morning:</strong> ${morningText}</div>
+          <div><strong style="color: var(--accent-amber);">☀️ Afternoon:</strong> ${afternoonText}</div>
+          <div><strong style="color: var(--accent-emerald);">🌆 Evening:</strong> ${eveningText}</div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.8rem; border-top: 1px dashed var(--border-color); padding-top: 0.6rem; font-size: 0.8rem; color: var(--text-secondary);">
+          <span><strong>🏨 Stay:</strong> ${dayItem.stayRecommendation || 'Hotel'}</span>
+          <span><strong>🍲 Food Spot:</strong> ${dayItem.foodSpot || 'Local Dhaba'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Partner Click Redirect Handling
+function handlePartnerClick(partner, destination) {
+  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
+  if (!user || !user.isPremium) {
+    openSubscriptionModal();
+    return;
+  }
+  
+  const query = encodeURIComponent(`${partner} ${destination}`);
+  const partnerUrls = {
+    Ola: `https://book.olacabs.com/search?q=${query}`,
+    Uber: `https://m.uber.com/ul/?action=setPickup&pickup=my_location`,
+    Rapido: `https://www.rapido.bike/`,
+    Swiggy: `https://www.swiggy.com/search?query=${query}`,
+    Zomato: `https://www.zomato.com/search?q=${query}`,
+    MakeMyTrip: `https://www.makemytrip.com/hotels/${query}.html`,
+    RedBus: `https://www.redbus.in/bus-tickets/${query}`,
+    IRCTC: `https://www.irctc.co.in/nget/train-search`
+  };
+
+  const targetUrl = partnerUrls[partner] || `https://www.google.com/search?q=${query}`;
+  window.open(targetUrl, '_blank');
+}
+
+// Toast Notifications
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerText = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// User Auth Session Helpers
+function checkUserSession() {
+  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
+  const userBtn = document.getElementById('user-profile-btn');
+  if (userBtn && user) {
+    userBtn.innerHTML = `<i class="fa-solid fa-user-circle"></i> ${user.name} ${user.isPremium ? '👑' : ''}`;
+  }
+}
+
+function openSubscriptionModal() {
+  const modal = document.getElementById('subscription-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeSubscriptionModal() {
+  const modal = document.getElementById('subscription-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function toggleBookmark(name) {
   const index = wishlist.findIndex(item => item.name === name);
-  if (index >= 0) {
+  if (index > -1) {
     wishlist.splice(index, 1);
     showToast(`Removed ${name} from Wishlist`, 'info');
   } else {
-    wishlist.push(dest);
-    showToast(`Added ${name} to Wishlist!`, 'success');
+    const found = destinationsData.find(d => d.name === name);
+    if (found) {
+      wishlist.push(found);
+      showToast(`Saved ${name} to Wishlist!`, 'success');
+    }
   }
-
   localStorage.setItem('suvidha_wishlist', JSON.stringify(wishlist));
   updateWishlistCount();
   renderDestinationsGrid(destinationsData);
 }
 
 function updateWishlistCount() {
-  const el = document.getElementById('wishlist-count');
-  if (el) el.innerText = wishlist.length;
-}
-
-// -----------------------------------------------------------------------------
-// Auth Modal Logic
-// -----------------------------------------------------------------------------
-function openAuthModal() {
-  document.getElementById('auth-modal').classList.add('active');
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-}
-
-function toggleAuthMode() {
-  isRegisterMode = !isRegisterMode;
-  const nameGroup = document.getElementById('name-group');
-  const title = document.getElementById('auth-modal-title');
-  const submitBtn = document.getElementById('auth-submit-btn');
-  const toggleText = document.getElementById('auth-toggle-text');
-  const toggleLink = document.getElementById('auth-toggle-link');
-
-  if (isRegisterMode) {
-    nameGroup.style.display = 'flex';
-    title.innerText = 'Create Account';
-    submitBtn.innerText = 'Register Account';
-    toggleText.innerText = 'Already have an account?';
-    toggleLink.innerText = 'Login Here';
-  } else {
-    nameGroup.style.display = 'none';
-    title.innerText = 'Welcome Back';
-    submitBtn.innerText = 'Login to Account';
-    toggleText.innerText = "Don't have an account?";
-    toggleLink.innerText = 'Register Here';
-  }
-}
-
-async function handleAuthSubmit(e) {
-  e.preventDefault();
-  const email = document.getElementById('auth-email').value;
-  const password = document.getElementById('auth-password').value;
-  const name = document.getElementById('auth-name').value;
-
-  const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
-  const payload = isRegisterMode ? { name, email, password } : { email, password };
-
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const json = await res.json();
-    if (json.status === 'success') {
-      localStorage.setItem('suvidha_user', JSON.stringify(json.data));
-      showToast(`Namaste ${json.data.name}!`, 'success');
-      closeModal('auth-modal');
-      checkUserSession();
-    } else {
-      showToast(json.message || 'Authentication failed', 'error');
-    }
-  } catch (error) {
-    console.error('Auth error:', error);
-    showToast('Server connection error during authentication', 'error');
-  }
-}
-
-function checkUserSession() {
-  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
-  const navItem = document.getElementById('auth-nav-item');
-  if (user && navItem) {
-    const isGold = user.isPremium;
-    navItem.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <span style="font-size: 0.9rem; color: ${isGold ? 'var(--accent-gold)' : 'var(--accent-emerald)'}; font-weight: 700;">
-          ${isGold ? '👑 GOLD MEMBER:' : '🙏 Namaste'} ${user.name}
-        </span>
-        <button class="btn btn-secondary" onclick="logoutUser()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Logout</button>
-      </div>
-    `;
-  }
-}
-
-function logoutUser() {
-  localStorage.removeItem('suvidha_user');
-  showToast('Logged out successfully', 'info');
-  location.reload();
-}
-
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.style.borderColor = type === 'error' ? 'var(--accent-rose)' : type === 'success' ? 'var(--accent-emerald)' : 'var(--accent-cyan)';
-  toast.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${message}`;
-
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.remove();
-  }, 4000);
-}
-
-// -----------------------------------------------------------------------------
-// Premium Subscription & Integrated Partner Redirect Logic
-// -----------------------------------------------------------------------------
-function openPremiumModal() {
-  document.getElementById('premium-modal').classList.add('active');
-}
-
-async function processPayment(plan) {
-  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
-  const userId = user ? user._id : 'demo_user_123';
-  const priceText = plan === 'annual' ? '₹999' : '₹199';
-
-  showToast(`Simulating Secure Razorpay/UPI Payment of ${priceText}...`, 'info');
-
-  try {
-    const res = await fetch('/api/subscription/upgrade', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, plan, paymentMethod: 'UPI' })
-    });
-
-    const json = await res.json();
-    if (json.status === 'success') {
-      const updatedUser = {
-        ...(user || { name: 'Travel Enthusiast', email: 'demo@suvidha.com' }),
-        isPremium: true,
-        subscriptionPlan: plan
-      };
-      localStorage.setItem('suvidha_user', JSON.stringify(updatedUser));
-      
-      showToast(`🎉 Congratulations! You are now a SUVIDHA Gold ${plan.toUpperCase()} Member!`, 'success');
-      closeModal('premium-modal');
-      checkUserSession();
-    } else {
-      showToast('Payment processing failed', 'error');
-    }
-  } catch (error) {
-    console.error('Subscription error:', error);
-    showToast('Simulated payment error', 'error');
-  }
-}
-
-function handlePartnerClick(partner, destination) {
-  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
-  const isPremium = user && user.isPremium;
-  const cleanCity = encodeURIComponent(destination.split('(')[0].trim());
-
-  const deepLinks = {
-    'Ola': `https://book.olacabs.com/?drop_name=${cleanCity}`,
-    'Uber': `https://m.uber.com/ul/?action=setPickup&drop[formatted_address]=${cleanCity}`,
-    'Rapido': `https://www.rapido.bike/`,
-    'Swiggy': `https://www.swiggy.com/city/${cleanCity.toLowerCase()}`,
-    'Zomato': `https://www.zomato.com/${cleanCity.toLowerCase()}`,
-    'MakeMyTrip': `https://www.makemytrip.com/hotels/${cleanCity.toLowerCase()}-hotels.html`,
-    'RedBus': `https://www.redbus.in/bus-tickets/${cleanCity.toLowerCase()}`,
-    'IRCTC': `https://www.irctc.co.in/nget/train-search`
-  };
-
-  const targetUrl = deepLinks[partner] || 'https://www.google.com';
-
-  if (!isPremium) {
-    showToast(`🔒 Opening ${partner} booking shortcut! Upgrade to SUVIDHA Gold for pre-filled auto-redirects.`, 'info');
-  } else {
-    showToast(`🚀 Opening ${partner} for ${destination}...`, 'success');
-  }
-
-  setTimeout(() => {
-    window.open(targetUrl, '_blank');
-  }, 600);
+  const badge = document.getElementById('wishlist-badge');
+  if (badge) badge.innerText = wishlist.length;
 }
