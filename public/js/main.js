@@ -11,6 +11,7 @@ let wishlist = JSON.parse(localStorage.getItem('suvidha_wishlist') || '[]');
 let currentActivePlan = null;
 let userSessionId = localStorage.getItem('suvidha_session_id');
 let searchDebounceTimer = null;
+let isAuthRegisterMode = false;
 
 if (!userSessionId) {
   userSessionId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
@@ -123,11 +124,11 @@ function visualizeDayRouteOnMap(dayData, destinationName) {
   const bounds = [];
 
   const categoryColors = {
-    'Hotel': '#6366f1',
+    'Hotel': '#0284c7',
     'Attraction': '#f59e0b',
-    'Restaurant': '#f43f5e',
+    'Restaurant': '#ff6b6b',
     'Sunset Point': '#10b981',
-    'Transit': '#06b6d4'
+    'Transit': '#0d9488'
   };
 
   stops.forEach((stop, index) => {
@@ -136,12 +137,12 @@ function visualizeDayRouteOnMap(dayData, destinationName) {
       latLngs.push(point);
       bounds.push(point);
 
-      const color = categoryColors[stop.category] || '#6366f1';
+      const color = categoryColors[stop.category] || '#0284c7';
       const stopNumber = stop.stopOrder || (index + 1);
 
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
-        html: `<div style="background-color:${color}; color:#fff; border:2px solid #fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; box-shadow:0 3px 6px rgba(0,0,0,0.4);">${stopNumber}</div>`,
+        html: `<div style="background-color:${color}; color:#fff; border:2px solid #fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; box-shadow:0 4px 10px rgba(0,0,0,0.25);">${stopNumber}</div>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14]
       });
@@ -149,8 +150,8 @@ function visualizeDayRouteOnMap(dayData, destinationName) {
       const popupContent = `
         <div style="font-family: system-ui, sans-serif; padding:4px;">
           <strong style="color:${color}; font-size:14px;">Stop ${stopNumber}: ${stop.name}</strong><br>
-          <span style="font-size:11px; color:#666;">Category: ${stop.category || 'Sightseeing'} • Est. ${stop.estimatedDurationMinutes || 45} mins</span>
-          ${stop.legDistanceKm ? `<br><small style="color:#10b981;">🚗 Leg Distance: ${stop.legDistanceKm} km (${stop.legDurationMins} mins)</small>` : ''}
+          <span style="font-size:11px; color:#64748b;">Category: ${stop.category || 'Sightseeing'} • Est. ${stop.estimatedDurationMinutes || 45} mins</span>
+          ${stop.legDistanceKm ? `<br><small style="color:#10b981; font-weight:700;">🚗 Leg Distance: ${stop.legDistanceKm} km (${stop.legDurationMins} mins)</small>` : ''}
         </div>
       `;
 
@@ -163,9 +164,9 @@ function visualizeDayRouteOnMap(dayData, destinationName) {
 
   if (latLngs.length > 1) {
     L.polyline(latLngs, {
-      color: '#6366f1',
+      color: '#0284c7',
       weight: 4,
-      opacity: 0.8,
+      opacity: 0.85,
       dashArray: '6, 8'
     }).addTo(routePolylineLayer);
 
@@ -211,10 +212,10 @@ function renderDestinationsGrid(items) {
 
   if (!items || items.length === 0) {
     grid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
-        <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-secondary);"></i>
-        <h3>No Indian destinations match your filter criteria</h3>
-        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Try searching for another city, state, or travel vibe!</p>
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3.5rem 1rem;">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--brand-blue);"></i>
+        <h3 style="color: var(--text-primary);">No Indian destinations match your filter criteria</h3>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem; color: var(--text-secondary);">Try searching for another city, state, or travel vibe!</p>
       </div>
     `;
     return;
@@ -226,7 +227,7 @@ function renderDestinationsGrid(items) {
     const matchScore = d.matchPercentage || d.matchScore || 92;
 
     return `
-      <div class="glass-panel card">
+      <div class="card">
         <div class="card-img-wrap">
           <img src="${d.imageUrl}" alt="${d.name}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800'">
           <span class="card-badge">${d.category}</span>
@@ -243,14 +244,14 @@ function renderDestinationsGrid(items) {
 
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.8rem; margin-top: auto;">
             <div>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">DAILY EST.</span><br>
-              <strong style="color: var(--accent-emerald); font-size: 1rem;">₹${costInr.toLocaleString('en-IN')}</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">DAILY EST.</span><br>
+              <strong style="color: var(--accent-green); font-size: 1.05rem;">₹${costInr.toLocaleString('en-IN')}</strong>
             </div>
             <div style="display: flex; gap: 0.5rem;">
               <button class="btn btn-outline" style="padding: 0.4rem 0.6rem;" onclick="toggleBookmark('${d.name}')" aria-label="Save to wishlist">
-                <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark" style="color: ${isBookmarked ? 'var(--accent-amber)' : 'inherit'}"></i>
+                <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-heart" style="color: ${isBookmarked ? 'var(--accent-coral)' : 'inherit'}"></i>
               </button>
-              <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="selectDestinationForPlanner('${d.name}')">
+              <button class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;" onclick="selectDestinationForPlanner('${d.name}')">
                 Plan Trip
               </button>
             </div>
@@ -322,7 +323,7 @@ async function handleAiPlannerSubmit(e) {
 
   const btn = document.getElementById('generate-btn');
   const originalBtnText = btn.innerHTML;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Bharat AI Saathi Planning...`;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Planning Journey...`;
   btn.disabled = true;
 
   showSteppedLoadingModal();
@@ -367,31 +368,31 @@ function renderItineraryView(plan) {
   output.innerHTML = `
     <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-        <h2 style="font-size: 1.6rem;">🇮🇳 ${destName}</h2>
-        <span style="background: var(--gradient-main); color: #000; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: 700; font-size: 0.85rem;">
+        <h2 style="font-size: 1.6rem; color: var(--text-primary);">🇮🇳 ${destName}</h2>
+        <span style="background: var(--brand-blue-light); color: var(--brand-blue); padding: 0.3rem 0.8rem; border-radius: 12px; font-weight: 800; font-size: 0.85rem;">
           ${plan.durationDays || days.length} Days • ${plan.budgetLevel}
         </span>
       </div>
       <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem;">${plan.summary || plan.aiRationale || ''}</p>
       
-      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; background: rgba(255,255,255,0.04); padding: 0.8rem 1rem; border-radius: 8px;">
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; background: #f8fafc; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
         <div>
-          <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">ESTIMATED TOTAL COST</span>
-          <strong style="color: var(--accent-emerald); font-size: 1.3rem;">₹${totalCostInr.toLocaleString('en-IN')} INR</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; display: block;">ESTIMATED TOTAL COST</span>
+          <strong style="color: var(--accent-green); font-size: 1.3rem;">₹${totalCostInr.toLocaleString('en-IN')} INR</strong>
         </div>
         <div>
-          <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">MATCH SCORE</span>
-          <strong style="color: var(--accent-amber); font-size: 1.05rem;">${plan.matchScore || 90}% Match</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; display: block;">MATCH SCORE</span>
+          <strong style="color: var(--accent-orange); font-size: 1.05rem;">${plan.matchScore || 90}% Match</strong>
         </div>
       </div>
 
       <!-- Integrated Partner Booking Suite -->
       <div class="booking-suite-container">
         <div class="booking-suite-header">
-          <span style="font-weight: 700; color: var(--accent-gold); font-size: 0.95rem;">
-            <i class="fa-solid fa-crown"></i> SUVIDHA Partner Booking Suite
+          <span style="font-weight: 800; color: var(--brand-blue); font-size: 0.95rem;">
+            <i class="fa-solid fa-crown" style="color: var(--accent-gold);"></i> SUVIDHA Partner Booking Suite
           </span>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Direct Partner Redirects</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Direct Partner Redirects</span>
         </div>
         
         <div class="partner-grid">
@@ -429,7 +430,7 @@ function renderItineraryView(plan) {
 
     <!-- Day Route Selector Tabs -->
     <div style="margin-bottom: 1.5rem;">
-      <h3 style="font-size: 1.1rem; margin-bottom: 0.6rem;">🗺️ Interactive Geospatial Route Visualization</h3>
+      <h3 style="font-size: 1.1rem; margin-bottom: 0.6rem; color: var(--text-primary);">🗺️ Interactive Route Visualization</h3>
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;" id="day-selector-tabs">
         ${days.map((dayItem, index) => `
           <button class="btn ${index === 0 ? 'btn-primary' : 'btn-outline'}" 
@@ -472,20 +473,20 @@ function renderDayCards(days) {
     const metrics = dayItem.routeMetrics;
 
     return `
-      <div class="glass-panel" style="padding: 1rem 1.2rem; margin-bottom: 1rem; border-left: 4px solid var(--accent-amber);">
+      <div class="glass-panel" style="padding: 1rem 1.2rem; margin-bottom: 1rem; border-left: 4px solid var(--brand-blue); background: #ffffff;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
-          <h4 style="font-size: 1.1rem; color: var(--accent-amber);">${dayItem.title || `Day ${dayItem.day}`}</h4>
+          <h4 style="font-size: 1.1rem; color: var(--brand-blue); font-weight: 800;">${dayItem.title || `Day ${dayItem.day}`}</h4>
           ${metrics ? `
-            <span style="font-size: 0.75rem; background: rgba(16,185,129,0.15); color: var(--accent-emerald); padding: 0.2rem 0.6rem; border-radius: 8px; font-weight: 600;">
+            <span style="font-size: 0.75rem; background: var(--brand-blue-light); color: var(--brand-blue); padding: 0.2rem 0.6rem; border-radius: 8px; font-weight: 700;">
               🚗 ${metrics.totalDistanceKm} km • ${metrics.estimatedTravelTimeMins} mins est. commute (₹${metrics.estimatedTransportCostInr})
             </span>
           ` : ''}
         </div>
 
         <div style="display: grid; gap: 0.6rem; font-size: 0.9rem;">
-          <div><strong style="color: var(--accent-cyan);">🌅 Morning (9:00 AM - 12:00 PM):</strong> ${morningText}</div>
-          <div><strong style="color: var(--accent-amber);">☀️ Afternoon (1:00 PM - 4:00 PM):</strong> ${afternoonText}</div>
-          <div><strong style="color: var(--accent-emerald);">🌆 Evening (5:00 PM - 8:30 PM):</strong> ${eveningText}</div>
+          <div><strong style="color: var(--brand-blue);">🌅 Morning (9:00 AM - 12:00 PM):</strong> ${morningText}</div>
+          <div><strong style="color: var(--accent-orange);">☀️ Afternoon (1:00 PM - 4:00 PM):</strong> ${afternoonText}</div>
+          <div><strong style="color: var(--accent-teal);">🌆 Evening (5:00 PM - 8:30 PM):</strong> ${eveningText}</div>
         </div>
 
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.8rem; border-top: 1px dashed var(--border-color); padding-top: 0.6rem; font-size: 0.8rem; color: var(--text-secondary);">
@@ -554,6 +555,76 @@ function openAuthModal() {
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.style.display = 'none';
+}
+
+function toggleAuthMode() {
+  isAuthRegisterMode = !isAuthRegisterMode;
+  const nameGroup = document.getElementById('name-group');
+  const title = document.getElementById('auth-modal-title');
+  const btn = document.getElementById('auth-submit-btn');
+  const text = document.getElementById('auth-toggle-text');
+  const link = document.getElementById('auth-toggle-link');
+
+  if (isAuthRegisterMode) {
+    if (nameGroup) nameGroup.style.display = 'block';
+    if (title) title.innerText = 'Create an Account';
+    if (btn) btn.innerText = 'Register Account';
+    if (text) text.innerText = 'Already have an account?';
+    if (link) link.innerText = 'Login Here';
+  } else {
+    if (nameGroup) nameGroup.style.display = 'none';
+    if (title) title.innerText = 'Welcome Back';
+    if (btn) btn.innerText = 'Login to Account';
+    if (text) text.innerText = "Don't have an account?";
+    if (link) link.innerText = 'Register Here';
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value : '';
+
+  const endpoint = isAuthRegisterMode ? '/api/v1/auth/register' : '/api/v1/auth/login';
+  const bodyData = isAuthRegisterMode ? { name, email, password } : { email, password };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyData)
+    });
+    const json = await res.json();
+    if (json.success || json.status === 'success') {
+      const userData = json.data.user || json.data;
+      localStorage.setItem('suvidha_user', JSON.stringify(userData));
+      localStorage.setItem('suvidha_token', json.data.accessToken || json.token);
+      checkUserSession();
+      closeModal('auth-modal');
+      showToast(`Welcome ${userData.name || 'Explorer'}! Logged in successfully.`, 'success');
+    } else {
+      showToast(json.error ? json.error.message : 'Authentication failed', 'error');
+    }
+  } catch (err) {
+    console.error('Auth error:', err);
+    showToast('Error communicating with authentication server', 'error');
+  }
+}
+
+function processPayment(planType) {
+  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
+  if (!user) {
+    closeSubscriptionModal();
+    openAuthModal();
+    showToast('Please login to subscribe to Gold Club Pass', 'info');
+    return;
+  }
+  user.isPremium = true;
+  localStorage.setItem('suvidha_user', JSON.stringify(user));
+  checkUserSession();
+  closeSubscriptionModal();
+  showToast(`🎉 Congratulations! You unlocked SUVIDHA Gold ${planType.toUpperCase()} Pass!`, 'success');
 }
 
 function toggleBookmark(name) {

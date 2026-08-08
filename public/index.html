@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUVIDHA AI TRAVEL SAATHI - Aapka Apna Bharat Travel Engine</title>
+    <title>SUVIDHA AI TRAVEL SAATHI - Plan Less. Explore More.</title>
     
     <!-- Meta Descriptions & SEO -->
-    <meta name="description" content="SUVIDHA AI TRAVEL SAATHI - AI-driven personalized travel itineraries, ₹ INR budget estimators, and OpenStreetMap interactive guides for Indian travelers.">
-    <meta name="keywords" content="Indian travel guide, Bharat bhraman, AI trip planner India, Gemini AI, Teerth Yatra, Himachal, Goa, Rajasthan, Kerala, IRCTC train travel">
+    <meta name="description" content="SUVIDHA AI TRAVEL SAATHI - Your AI companion for extraordinary journeys. Discover destinations, create budget-aware itineraries, and optimize travel routes.">
+    <meta name="keywords" content="AI Travel Companion, Bharat Travel, Trip Planner India, Itinerary Engine, Route Optimization, Himachal, Goa, Rajasthan, Kerala">
     
     <!-- Leaflet.js Interactive OpenStreetMap CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -24,110 +24,134 @@
     <!-- Navigation Bar                                                          -->
     <!-- ----------------------------------------------------------------------- -->
     <nav class="navbar" role="navigation" aria-label="Main Navigation">
-        <a href="#" class="logo" aria-label="SUVIDHA AI Bharat Saathi Home">
-            <i class="fa-solid fa-om" style="color: var(--accent-amber);" aria-hidden="true"></i>
-            SUVIDHA <span class="logo-badge">BHARAT SAATHI</span>
+        <a href="#" class="logo" aria-label="SUVIDHA AI Travel Saathi Home">
+            <i class="fa-solid fa-compass" style="color: var(--brand-blue);" aria-hidden="true"></i>
+            SUVIDHA <span class="logo-badge">AI SAATHI</span>
         </a>
         <ul class="nav-links">
-            <li><a href="#hero">Mukhyaprishth (Home)</a></li>
-            <li><a href="#ai-wizard">AI Planner</a></li>
+            <li><a href="#hero">Explore</a></li>
+            <li><a href="#ai-wizard">Plan Trip</a></li>
+            <li><a href="#destinations">Destinations</a></li>
             <li><a href="#workspace">Map & Itinerary</a></li>
-            <li><a href="#destinations">Explore Spots</a></li>
             <li>
                 <button class="btn btn-gold" onclick="openSubscriptionModal()" aria-label="Go Premium">
                     <i class="fa-solid fa-crown" aria-hidden="true"></i> Go Premium
                 </button>
             </li>
             <li>
-                <button class="btn btn-secondary" id="wishlist-btn" onclick="scrollToDestinations()" aria-label="View Wishlist">
-                    <i class="fa-solid fa-bookmark" style="color: var(--accent-amber);" aria-hidden="true"></i> Wishlist 
-                    <span id="wishlist-badge" style="background: var(--accent-emerald); color: #000; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">0</span>
+                <button class="btn btn-outline" id="wishlist-btn" onclick="scrollToDestinations()" aria-label="View Wishlist">
+                    <i class="fa-solid fa-heart" style="color: var(--accent-coral);" aria-hidden="true"></i> Saved 
+                    <span id="wishlist-badge" style="background: var(--brand-blue); color: #fff; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">0</span>
                 </button>
             </li>
             <li id="auth-nav-item">
                 <button class="btn btn-primary" onclick="openAuthModal()" aria-label="Login or Register" id="user-profile-btn">
-                    <i class="fa-solid fa-user" aria-hidden="true"></i> Login / Register
+                    <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Start Exploring
                 </button>
             </li>
         </ul>
     </nav>
 
     <!-- ----------------------------------------------------------------------- -->
-    <!-- Hero Section                                                            -->
+    <!-- Hero Section: Light, Vibrant & Adventurous                              -->
     <!-- ----------------------------------------------------------------------- -->
-    <section class="hero" id="hero">
+    section class="hero" id="hero">
         <div class="hero-tagline">
-            🇮🇳 AAPKA APNA BHARAT TRAVEL SAATHI • DESH DEKHO
+            <i class="fa-solid fa-mountain" style="color: var(--brand-blue);" aria-hidden="true"></i> ADVENTURE STARTS HERE • DESH DEKHO
         </div>
         <h1 class="hero-title">
-            Smart & Accurate <span>AI Travel Engine</span> <br>Built Specially For Indian Travelers
+            Your AI Companion for <span>Extraordinary Journeys</span>
         </h1>
         <p class="hero-desc">
-            Plan your next journey in <strong>₹ Indian Rupees</strong>. From Teerth Yatra and Himalayan Treks to Royal Forts & Coastal Beaches—get instant AI day-by-day itineraries with IRCTC train tips, Dhaba trails, and interactive maps.
+            Plan less and explore more. SUVIDHA AI Travel Saathi helps backpackers, explorers, and road-trippers discover breathtaking destinations, generate day-by-day itineraries, optimize commute routes, and estimate costs in <strong>₹ INR</strong>.
         </p>
+
+        <div class="hero-actions">
+            <a href="#ai-wizard" class="btn btn-primary" style="padding: 0.85rem 2rem; font-size: 1.05rem;">
+                <i class="fa-solid fa-compass" aria-hidden="true"></i> Plan My Journey
+            </a>
+            <a href="#destinations" class="btn btn-secondary" style="padding: 0.85rem 2rem; font-size: 1.05rem;">
+                <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Explore Destinations
+            </a>
+        </div>
+
+        <div class="hero-stats">
+            <div class="hero-stat-item">
+                <strong>8+ Iconic Regions</strong>
+                <span>Himalayas, Forts, Beaches & Backwaters</span>
+            </div>
+            <div class="hero-stat-item">
+                <strong>100% Budget Aware</strong>
+                <span>Realistically Bounded in ₹ INR</span>
+            </div>
+            <div class="hero-stat-item">
+                <strong>Route Optimized</strong>
+                <span>Sequential Commute & Local Dhaba Trails</span>
+            </div>
+        </div>
     </section>
 
     <!-- ----------------------------------------------------------------------- -->
     <!-- AI Travel Planner Wizard Card                                           -->
     <!-- ----------------------------------------------------------------------- -->
     <section class="container" id="ai-wizard">
-        <div class="glass-panel wizard-card">
+        <div class="wizard-card">
             <h2 class="wizard-title">
-                <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-amber);" aria-hidden="true"></i>
-                Generate Your Customized Indian Trip Plan
+                <i class="fa-solid fa-sparkles" style="color: var(--brand-blue);" aria-hidden="true"></i>
+                Custom Travel Itinerary Generator
             </h2>
             <form id="ai-planner-form">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="destination-input"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Destination (City / State)</label>
-                        <input type="text" id="destination-input" class="form-input" placeholder="e.g. Varanasi, Manali, Jaipur, Goa, Kerala" required value="Varanasi (Kashi)">
+                        <label for="destination-input"><i class="fa-solid fa-location-dot" style="color: var(--brand-blue);" aria-hidden="true"></i> Where do you want to go?</label>
+                        <input type="text" id="destination-input" class="form-input" placeholder="e.g. Manali, Varanasi, Jaipur, Goa, Kerala" required value="Manali">
                     </div>
                     <div class="form-group">
-                        <label for="days-select"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Trip Duration</label>
+                        <label for="days-select"><i class="fa-solid fa-calendar-days" style="color: var(--accent-orange);" aria-hidden="true"></i> Trip Duration</label>
                         <select id="days-select" class="form-select">
-                            <option value="2">2 Days (Weekend Trip)</option>
-                            <option value="3" selected>3 Days (Short Vacation)</option>
-                            <option value="4">4 Days (Extended Trip)</option>
-                            <option value="5">5 Days (Full Exploration)</option>
-                            <option value="7">7 Days (Week Expedition)</option>
+                            <option value="2">2 Days (Weekend Getaway)</option>
+                            <option value="3" selected>3 Days (Short Expedition)</option>
+                            <option value="4">4 Days (Extended Exploration)</option>
+                            <option value="5">5 Days (Full Adventure)</option>
+                            <option value="7">7 Days (Week Road Trip)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="budget-select"><i class="fa-solid fa-indian-rupee-sign" aria-hidden="true"></i> Budget Range (per day)</label>
+                        <label for="budget-select"><i class="fa-solid fa-indian-rupee-sign" style="color: var(--accent-green);" aria-hidden="true"></i> Budget Level (per day)</label>
                         <select id="budget-select" class="form-select">
-                            <option value="Pocket-Friendly">Pocket-Friendly (₹1,200 - ₹1,800/day)</option>
-                            <option value="Standard" selected>Standard AC (₹3,000 - ₹4,500/day)</option>
-                            <option value="Royal-Luxury">Royal Luxury (₹10,000+/day)</option>
+                            <option value="Pocket-Friendly">Backpacker / Pocket-Friendly (₹1,200 - ₹1,800/day)</option>
+                            <option value="Standard" selected>Standard AC Comfort (₹3,000 - ₹4,500/day)</option>
+                            <option value="Royal-Luxury">Royal Luxury Experience (₹10,000+/day)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="vibe-select"><i class="fa-solid fa-heart" aria-hidden="true"></i> Travel Vibe / Type</label>
+                        <label for="vibe-select"><i class="fa-solid fa-fire" style="color: var(--accent-coral);" aria-hidden="true"></i> Travel Style & Vibe</label>
                         <select id="vibe-select" class="form-select">
-                            <option value="Spiritual" selected>🛕 Teerth Yatra & Spiritual</option>
-                            <option value="Himalayan Trek">⛰️ Himalayan Trek & Snow</option>
-                            <option value="Heritage">🏰 Royal Forts & Heritage</option>
-                            <option value="Beaches">🏖️ Coastal Beaches & Party</option>
-                            <option value="Nature">🌴 Backwaters & Greenery</option>
-                            <option value="Foodie">🍲 Dhaba & Local Food Trail</option>
+                            <option value="Himalayan Trek" selected>⛰️ Himalayan Trek & Snow Peaks</option>
+                            <option value="Spiritual">🛕 Teerth Yatra & Spiritual Ghats</option>
+                            <option value="Heritage">🏰 Royal Forts & Cultural Heritage</option>
+                            <option value="Beaches">🏖️ Coastal Beaches & Sunset Vibe</option>
+                            <option value="Nature">🌴 Backwaters & Forest Trails</option>
+                            <option value="Foodie">🍲 Dhaba & Local Street Food Trail</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="group-select"><i class="fa-solid fa-users" aria-hidden="true"></i> Travel Group</label>
+                        <label for="group-select"><i class="fa-solid fa-users" style="color: var(--accent-teal);" aria-hidden="true"></i> Travel Group</label>
                         <select id="group-select" class="form-select">
-                            <option value="Family" selected>Family & Parents</option>
-                            <option value="Friends">Friends Gang (YJHD vibes)</option>
-                            <option value="Couple">Honeymoon / Couple</option>
-                            <option value="Solo">Solo / Bike Expedition</option>
+                            <option value="Couple" selected>Couple / Honeymoon</option>
+                            <option value="Friends">Friends Gang (Road Trip)</option>
+                            <option value="Solo">Solo Explorer / Backpacker</option>
+                            <option value="Family">Family & Parents</option>
                         </select>
                     </div>
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div style="font-size: 0.85rem; color: var(--text-muted);">
-                        <i class="fa-solid fa-train" style="color: var(--accent-cyan);" aria-hidden="true"></i> Includes IRCTC Train/Vande Bharat & Dhaba recommendations
+                        <i class="fa-solid fa-route" style="color: var(--brand-blue);" aria-hidden="true"></i> Includes sequential route optimization & partner transit links
                     </div>
-                    <button type="submit" class="btn btn-primary" id="generate-btn">
-                        <i class="fa-solid fa-bolt" aria-hidden="true"></i> Generate Plan in ₹ INR
+                    <button type="submit" class="btn btn-primary" id="generate-btn" style="padding: 0.8rem 1.8rem;">
+                        <i class="fa-solid fa-bolt" aria-hidden="true"></i> Generate Itinerary in ₹ INR
                     </button>
                 </div>
             </form>
@@ -140,8 +164,8 @@
     <section class="container" id="workspace">
         <div class="section-header">
             <div>
-                <h2 class="section-title">Interactive Map & Day-by-Day Plan</h2>
-                <p style="color: var(--text-secondary);">Live map pins, transport routes, and daily cost breakdowns in ₹ INR</p>
+                <h2 class="section-title">Interactive Map & Travel Timeline</h2>
+                <p style="color: var(--text-secondary);">Sequential route map, commute times, and daily cost breakdowns in ₹ INR</p>
             </div>
             <button class="btn btn-secondary" onclick="window.print()" aria-label="Export or Print Itinerary">
                 <i class="fa-solid fa-print" aria-hidden="true"></i> Export / Print Itinerary
@@ -155,34 +179,34 @@
             <!-- AI Itinerary Output View -->
             <div class="glass-panel itinerary-view" id="itinerary-output">
                 <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);" id="itinerary-placeholder">
-                    <i class="fa-solid fa-map-location-dot" style="font-size: 3rem; color: var(--accent-amber); margin-bottom: 1rem;" aria-hidden="true"></i>
-                    <h3>Aapka Customized Travel Plan Yahan Dikhega</h3>
-                    <p style="margin-top: 0.5rem;">Fill out the form above and click <strong>Generate Plan in ₹ INR</strong>!</p>
+                    <i class="fa-solid fa-map-location-dot" style="font-size: 3rem; color: var(--brand-blue); margin-bottom: 1rem;" aria-hidden="true"></i>
+                    <h3>Your Customized Travel Journal Will Appear Here</h3>
+                    <p style="margin-top: 0.5rem; font-size: 0.95rem;">Select your destination above and click <strong>Generate Itinerary in ₹ INR</strong>!</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- ----------------------------------------------------------------------- -->
-    <!-- Featured Indian Destinations Section                                    -->
+    <!-- Featured Destinations Section                                           -->
     <!-- ----------------------------------------------------------------------- -->
     <section class="container" id="destinations">
         <div class="section-header">
             <div>
-                <h2 class="section-title">Iconic Indian Travel Spots</h2>
-                <p style="color: var(--text-secondary);">Browse top destinations tailored for Indian travelers</p>
+                <h2 class="section-title">Explore Destination Cards</h2>
+                <p style="color: var(--text-secondary);">Browse top handpicked regions tailored for Indian explorers</p>
             </div>
             <div style="display: flex; gap: 1rem;">
-                <input type="text" id="search-input" class="form-input" placeholder="🔍 Search Indian city/state..." style="min-width: 240px;" aria-label="Search destinations">
+                <input type="text" id="search-input" class="form-input" placeholder="🔍 Search region, city, or vibe..." style="min-width: 240px;" aria-label="Search destinations">
             </div>
         </div>
 
         <div class="filter-chips">
             <button class="chip active" onclick="filterDestinations('all', this)">All Destinations</button>
-            <button class="chip" onclick="filterDestinations('Spiritual', this)">🛕 Teerth & Spiritual</button>
             <button class="chip" onclick="filterDestinations('Hill Station', this)">⛰️ Hill Stations</button>
+            <button class="chip" onclick="filterDestinations('Spiritual', this)">🛕 Teerth & Spiritual</button>
             <button class="chip" onclick="filterDestinations('Heritage', this)">🏰 Royal Forts</button>
-            <button class="chip" onclick="filterDestinations('Beach', this)">🏖️ Beaches</button>
+            <button class="chip" onclick="filterDestinations('Beach', this)">🏖️ Coastal Beaches</button>
             <button class="chip" onclick="filterDestinations('Backwaters', this)">🌴 Backwaters</button>
         </div>
 
@@ -193,21 +217,21 @@
     </section>
 
     <!-- ----------------------------------------------------------------------- -->
-    <!-- Progressive Stepped AI Loading Modal                                    -->
+    <!-- Stepped Progress Loading Modal                                          -->
     <!-- ----------------------------------------------------------------------- -->
     <div class="modal-overlay" id="loading-modal">
         <div class="glass-panel modal-content" style="max-width: 460px; text-align: center;">
-            <div style="font-size: 2.5rem; color: var(--accent-amber); margin-bottom: 1rem;">
+            <div style="font-size: 2.8rem; color: var(--brand-blue); margin-bottom: 1rem;">
                 <i class="fa-solid fa-compass fa-spin" aria-hidden="true"></i>
             </div>
-            <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;" id="loading-title">Building Your Itinerary...</h3>
+            <h3 style="font-size: 1.45rem; margin-bottom: 0.5rem;" id="loading-title">Building Your Itinerary...</h3>
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;" id="loading-status">
                 Analyzing your travel preferences & budget target...
             </p>
-            <div style="background: rgba(255,255,255,0.06); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 1rem;">
+            <div style="background: rgba(2, 132, 199, 0.1); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 1rem;">
                 <div id="loading-progress-bar" style="background: var(--gradient-main); height: 100%; width: 20%; transition: width 0.4s ease;"></div>
             </div>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">SUVIDHA AI BHARAT TRAVEL ENGINE</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">SUVIDHA AI TRAVEL ENGINE</span>
         </div>
     </div>
 
@@ -238,7 +262,7 @@
 
             <div style="text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
                 <span id="auth-toggle-text">Don't have an account?</span> 
-                <a href="#" onclick="toggleAuthMode()" style="color: var(--accent-cyan); font-weight: 600;" id="auth-toggle-link">Register Here</a>
+                <a href="#" onclick="toggleAuthMode()" style="color: var(--brand-blue); font-weight: 600;" id="auth-toggle-link">Register Here</a>
             </div>
         </div>
     </div>
@@ -250,7 +274,7 @@
             
             <div style="text-align: center; margin-bottom: 2rem;">
                 <span class="gold-badge" style="font-size: 0.9rem; padding: 0.3rem 1rem;">👑 SUVIDHA SAATHI GOLD CLUB</span>
-                <h2 style="font-size: 2.2rem; margin-top: 0.5rem; background: var(--gradient-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                <h2 style="font-size: 2.2rem; margin-top: 0.5rem; color: var(--brand-blue);">
                     Unlock All-in-One Indian Travel Booking Suite
                 </h2>
                 <p style="color: var(--text-secondary); max-width: 600px; margin: 0.5rem auto 0;">
@@ -292,9 +316,8 @@
                 </div>
             </div>
 
-            <!-- Simulated Payment Checkout Footer -->
-            <div style="background: rgba(255,255,255,0.03); border: 1px dashed var(--accent-gold); padding: 1rem; border-radius: 10px; text-align: center; font-size: 0.85rem; color: var(--text-secondary);">
-                <i class="fa-solid fa-lock" style="color: var(--accent-emerald);" aria-hidden="true"></i> 100% Secure Razorpay & Instant UPI Payment Integration (GPay, PhonePe, Paytm, BHIM, Cards)
+            <div style="background: rgba(2, 132, 199, 0.05); border: 1px dashed var(--brand-blue); padding: 1rem; border-radius: 10px; text-align: center; font-size: 0.85rem; color: var(--text-secondary);">
+                <i class="fa-solid fa-lock" style="color: var(--accent-green);" aria-hidden="true"></i> 100% Secure Razorpay & Instant UPI Payment Integration (GPay, PhonePe, Paytm, BHIM, Cards)
             </div>
         </div>
     </div>
@@ -303,9 +326,9 @@
 
     <footer>
         <div class="container">
-            <p><strong>SUVIDHA AI TRAVEL SAATHI (सुविधा एआई ट्रैवल साथी)</strong> — Bharat Travel Recommendation Engine</p>
+            <p><strong>SUVIDHA AI TRAVEL SAATHI (सुविधा एआई ट्रैवल साथी)</strong> — Adventure Starts Here</p>
             <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
-                Tailored for Indian Travelers. Powered by Node.js, Express, MongoDB, Gemini AI, & OpenStreetMap.
+                Tailored for Explorers & Travelers in India. Powered by Node.js, Express, MongoDB, Gemini AI, & OpenStreetMap.
             </p>
         </div>
     </footer>
