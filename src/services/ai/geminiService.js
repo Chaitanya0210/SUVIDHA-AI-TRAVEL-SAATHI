@@ -5,6 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const config = require('../../config/env');
 const { validateItineraryOutput } = require('./itineraryValidator');
 const { optimizeRouteSequence } = require('../maps/routingService');
+const { getLandmarksForDestination } = require('../../utils/indianLandmarks');
 
 /**
  * Attaches geocoded activity stops and optimized route metrics to an itinerary day
@@ -168,9 +169,13 @@ const generateStructuredAiItinerary = async ({ userPreferences, candidateDestina
     vibes = ['Spiritual']
   } = userPreferences;
 
-  const destName = candidateDestination.name || candidateDestination.destinationName || 'Varanasi';
+  const destName = candidateDestination.name || candidateDestination.destinationName || 'Nanded';
   const apiKey = config.GEMINI_API_KEY;
-  const destCoords = candidateDestination.coordinates || { lat: 25.3176, lng: 82.9739 };
+
+  // Resolve landmarks knowledge base for destination
+  const landmarkInfo = getLandmarksForDestination(destName);
+  const attractions = candidateDestination.topAttractions || (landmarkInfo ? landmarkInfo.topAttractions : null) || [`Famous ${destName} Landmark`, `Heritage Site in ${destName}`, `Local Market in ${destName}`];
+  const destCoords = candidateDestination.coordinates || (landmarkInfo ? landmarkInfo.coordinates : { lat: 19.1383, lng: 77.3210 });
 
   let itineraryPlan = null;
 
@@ -182,24 +187,20 @@ const generateStructuredAiItinerary = async ({ userPreferences, candidateDestina
       const prompt = `You are SUVIDHA AI Travel Saathi, an expert Indian travel planner. 
 Generate a structured ${duration}-day trip itinerary for "${destName}" (${candidateDestination.stateOrRegion || 'India'}) for a ${group} group with a ${budgetLevel} budget seeking a ${vibes.join(', ')} experience.
 
-Structured Candidate Destination Context:
-- Match Score: ${candidateDestination.matchScore || 90}%
-- State/Region: ${candidateDestination.stateOrRegion || 'India'}
-- Category: ${candidateDestination.category || 'Tourism'}
-- Estimated Daily Base Cost: ₹${candidateDestination.estimatedCostPerDayInr || 2500} INR
-- Top Attractions: ${(candidateDestination.topAttractions || []).join(', ')}
-- Suitable For: ${(candidateDestination.suitableFor || []).join(', ')}
-- Food Options: ${(candidateDestination.foodOptions || []).join(', ')}
+CRITICAL INSTRUCTION FOR LANDMARKS & ATTRACTIONS:
+You MUST include the exact real-world iconic, historical, and religious landmarks of "${destName}".
+Target Known Landmarks for ${destName}: ${attractions.join(', ')}.
+For example, if destination is Nanded, you MUST explicitly include Takht Sachkhand Sri Hazur Abchalnagar Sahib Gurudwara and Gurudwara Shikar Ghat Sahib in the morning/afternoon schedule!
+Do NOT write generic placeholders like "City Center" or "Local Sightseeing". Name exact real-world monuments, temples, gurudwaras, forts, or beaches!
 
 INSTRUCTIONS:
-1. Use the provided structured candidate facts for ${destName}. Do not invent non-existent geographical facts.
-2. Respect the target duration (${duration} days), group type (${group}), and budget level (${budgetLevel}).
-3. Return STRICTLY PURE VALID JSON with NO markdown formatting, no code blocks, and no extra text outside the JSON object.
+1. Respect the target duration (${duration} days), group type (${group}), and budget level (${budgetLevel}).
+2. Return STRICTLY PURE VALID JSON with NO markdown formatting, no code blocks, and no extra text outside the JSON object.
 
 JSON SCHEMA REQUIREMENT:
 {
   "destination": "${destName}",
-  "summary": "A concise 2-sentence summary highlighting why ${destName} was selected.",
+  "summary": "A concise 2-sentence summary highlighting why ${destName} was selected and its famous landmarks.",
   "matchReasoning": "Detailed explanation of how this trip satisfies the user's ${vibes.join(', ')} preferences.",
   "estimatedCost": {
     "accommodation": 6000,
@@ -212,12 +213,12 @@ JSON SCHEMA REQUIREMENT:
   "days": [
     {
       "day": 1,
-      "title": "Day 1 Theme Title",
-      "morning": ["Morning activity description 1"],
+      "title": "Day 1 Theme Title with exact landmark name",
+      "morning": ["Morning visit to famous landmark in ${destName}"],
       "afternoon": ["Afternoon activity & local lunch recommendation"],
-      "evening": ["Evening sightseeing or Aarti/Sunset viewing"],
-      "stayRecommendation": "Recommended hotel/guesthouse type",
-      "foodSpot": "Recommended local Dhaba or restaurant spot"
+      "evening": ["Evening sightseeing or Aarti/Market walk"],
+      "stayRecommendation": "Recommended hotel/guesthouse/yatri niwas type",
+      "foodSpot": "Recommended local Dhaba or Guru Ka Langar spot"
     }
   ],
   "travelTips": [
@@ -252,7 +253,7 @@ JSON SCHEMA REQUIREMENT:
   // Attach geospatial route optimization to each day of the itinerary
   if (itineraryPlan && Array.isArray(itineraryPlan.days)) {
     itineraryPlan.days = itineraryPlan.days.map((day, idx) =>
-      attachGeospatialRouteToDay(day, destCoords, candidateDestination.topAttractions || [], idx + 1)
+      attachGeospatialRouteToDay(day, destCoords, attractions, idx + 1)
     );
   }
 
@@ -260,7 +261,7 @@ JSON SCHEMA REQUIREMENT:
 };
 
 /**
- * Deterministic Indian Fallback Itinerary Generator
+ * Deterministic Indian Fallback Itinerary Generator with Real Landmarks
  */
 const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }) => {
   const duration = userPreferences.duration || candidateDestination.idealDurationDays || 3;
@@ -268,9 +269,14 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
   const group = userPreferences.group || 'Solo';
   const vibes = userPreferences.vibes || candidateDestination.travelVibes || ['Spiritual'];
 
-  const destName = candidateDestination.name || candidateDestination.destinationName || 'Varanasi';
-  const dailyBaseCost = candidateDestination.estimatedCostPerDayInr || 2500;
+  const destName = candidateDestination.name || candidateDestination.destinationName || 'Nanded';
+  const landmarkInfo = getLandmarksForDestination(destName);
 
+  const attractions = (candidateDestination.topAttractions && candidateDestination.topAttractions.length > 0)
+    ? candidateDestination.topAttractions
+    : (landmarkInfo ? landmarkInfo.topAttractions : [`Famous ${destName} Landmark`, `Heritage Site in ${destName}`, `Local Market in ${destName}`]);
+
+  const dailyBaseCost = candidateDestination.estimatedCostPerDayInr || 2500;
   const totalCost = dailyBaseCost * duration;
   const estimatedCost = {
     accommodation: Math.round(totalCost * 0.40),
@@ -281,32 +287,33 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
     total: totalCost
   };
 
-  const attractions = candidateDestination.topAttractions || ['Local Sightseeing', 'Heritage Walk', 'Local Market'];
   const daysArray = [];
 
   for (let i = 1; i <= duration; i++) {
-    const attraction = attractions[(i - 1) % attractions.length];
+    const mainAttraction = attractions[(i - 1) % attractions.length];
+    const secondaryAttraction = attractions[i % attractions.length] || mainAttraction;
+
     daysArray.push({
       day: i,
-      title: `Day ${i}: Discovering ${attraction} & Local Highlights`,
-      morning: [`Morning visit to ${attraction} in ${destName}`, 'Explore surrounding scenic viewpoints & heritage architecture'],
-      afternoon: [`Enjoy authentic local lunch at popular Dhaba/Thali center`, 'Relaxed stroll through old town craft markets'],
-      evening: [`Sunset view & local evening cultural experience`, 'Dinner at recommended local food trail spot'],
-      stayRecommendation: budgetLevel === 'Pocket-Friendly' ? 'Clean Yatri Niwas / Homestay' : budgetLevel === 'Royal-Luxury' ? '5-Star Heritage Palace / Luxury Resort' : '3-Star Standard Hotel / Guest House',
-      foodSpot: `Famous ${destName} Local Thali & Street Food Trail`
+      title: `Day ${i}: ${mainAttraction} & ${destName} Exploration`,
+      morning: [`Darshan & morning visit to ${mainAttraction}`, `Explore surrounding historical heritage & sacred premises in ${destName}`],
+      afternoon: [`Enjoy authentic local lunch at ${landmarkInfo ? landmarkInfo.foodSpot : 'popular Dhaba/Thali center'}`, `Relaxed afternoon visit to ${secondaryAttraction}`],
+      evening: [`Sunset view at Godavari Ghat & evening Aarti/Prayer`, `Dinner at recommended local food trail spot in ${destName}`],
+      stayRecommendation: landmarkInfo ? landmarkInfo.stayRecommendation : (budgetLevel === 'Pocket-Friendly' ? 'Clean Yatri Niwas / Homestay' : '3-Star Standard Hotel / Guest House'),
+      foodSpot: landmarkInfo ? landmarkInfo.foodSpot : `Famous ${destName} Local Thali & Street Food Trail`
     });
   }
 
   return {
     destination: destName,
-    summary: `${destName} is an exceptional ${candidateDestination.category || 'destination'} in ${candidateDestination.stateOrRegion || 'India'}, offering a memorable ${vibes.join(' & ')} experience tailored for ${group} travelers.`,
-    matchReasoning: `This itinerary scores ${candidateDestination.matchScore || 90}% compatibility with your preferences, fitting comfortably within your ${budgetLevel} budget.`,
+    summary: `${destName} is an exceptional spiritual and historical destination in ${candidateDestination.stateOrRegion || 'Maharashtra, India'}, world-famous for ${attractions[0]} and sacred cultural heritage.`,
+    matchReasoning: `This itinerary scores ${candidateDestination.matchScore || 95}% compatibility with your preferences, highlighting ${attractions[0]} and fitting comfortably within your ${budgetLevel} budget.`,
     estimatedCost,
     days: daysArray,
     travelTips: [
-      `Best mode of local transit: ${candidateDestination.averageLocalTransportCostInr ? `Local auto/cab (approx ₹${candidateDestination.averageLocalTransportCostInr}/day)` : 'Local E-Rickshaw / Auto'}`,
-      'Carry cash for local street food vendors and temple entry fees.',
-      `Best seasons to visit: ${(candidateDestination.bestSeasons || ['Winter', 'Autumn']).join(', ')}.`
+      `Main landmark highlight: ${attractions[0]}`,
+      'Dress modestly and cover your head when visiting holy Gurudwaras and sacred temples.',
+      'Carry cash for local prasad, rickshaws, and craft markets.'
     ]
   };
 };

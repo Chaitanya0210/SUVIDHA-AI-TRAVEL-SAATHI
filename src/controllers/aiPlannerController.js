@@ -4,6 +4,7 @@
 const Destination = require('../models/Destination');
 const { generateStructuredAiItinerary } = require('../services/ai/geminiService');
 const { getPersonalizedRecommendations } = require('../services/recommendationService');
+const { getLandmarksForDestination } = require('../utils/indianLandmarks');
 const { initialDestinations } = require('../utils/seeder');
 const { ValidationError } = require('../utils/appError');
 
@@ -29,12 +30,15 @@ const planTripWithAi = async (req, res, next) => {
 
     let candidateDestination = null;
 
-    // 1. If user explicitly entered/selected a destination name
+    // 1. Check if user explicitly entered/selected a destination name
     if (destination && destination.trim() !== '') {
       const cleanDestName = destination.trim();
       const cleanRegex = new RegExp(cleanDestName.replace(/[()]/g, ''), 'i');
 
-      // Direct MongoDB search first
+      // Check real-world Indian landmark knowledge dictionary first
+      const landmarkData = getLandmarksForDestination(cleanDestName);
+
+      // Direct MongoDB database search
       const dbMatch = await Destination.findOne({
         $or: [
           { name: cleanRegex },
@@ -46,9 +50,33 @@ const planTripWithAi = async (req, res, next) => {
 
       if (dbMatch) {
         candidateDestination = dbMatch.toObject();
+        if (landmarkData && landmarkData.topAttractions) {
+          candidateDestination.topAttractions = Array.from(new Set([...landmarkData.topAttractions, ...(candidateDestination.topAttractions || [])]));
+          candidateDestination.coordinates = landmarkData.coordinates || candidateDestination.coordinates;
+        }
         candidateDestination.matchScore = 95;
+      } else if (landmarkData) {
+        // Construct structured candidate from landmark dictionary (e.g. Nanded, Amritsar, Ayodhya, Ujjain)
+        candidateDestination = {
+          name: landmarkData.name,
+          destinationName: landmarkData.name,
+          stateOrRegion: landmarkData.stateOrRegion,
+          city: landmarkData.name,
+          category: landmarkData.category || travelVibe || 'Spiritual',
+          description: `Expedition to iconic ${landmarkData.name} featuring ${landmarkData.topAttractions[0]}.`,
+          budgetLevel: budgetLevel || 'Standard',
+          estimatedCostPerDayInr: budgetLevel === 'Pocket-Friendly' ? 1800 : (budgetLevel === 'Royal-Luxury' ? 12000 : 3200),
+          travelVibes: [travelVibe || 'Spiritual'],
+          suitableFor: [groupType || 'Family'],
+          foodOptions: ['Pure Veg', 'Local Dhaba', 'Jain'],
+          bestSeasons: ['Winter', 'Autumn', 'Spring'],
+          idealDurationDays: duration,
+          topAttractions: landmarkData.topAttractions,
+          coordinates: landmarkData.coordinates,
+          matchScore: 96
+        };
       } else {
-        // Construct structured candidate for custom/unseeded user destination
+        // Construct structured candidate for custom user destination
         candidateDestination = {
           name: cleanDestName,
           destinationName: cleanDestName,
@@ -64,11 +92,11 @@ const planTripWithAi = async (req, res, next) => {
           bestSeasons: ['All Seasons'],
           idealDurationDays: duration,
           topAttractions: [
-            `${cleanDestName} Landmark & Viewpoint`,
+            `${cleanDestName} Main Famous Landmark / Temple`,
             `${cleanDestName} Heritage & Cultural Spot`,
             `${cleanDestName} Local Market & Food Trail`
           ],
-          coordinates: { lat: 20.5937, lng: 78.9629 }, // Center India fallback
+          coordinates: { lat: 20.5937, lng: 78.9629 },
           matchScore: 92
         };
       }
