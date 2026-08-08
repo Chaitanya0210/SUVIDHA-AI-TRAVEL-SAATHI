@@ -6,22 +6,12 @@ const config = require('../../config/env');
 const { validateItineraryOutput } = require('./itineraryValidator');
 const { optimizeRouteSequence } = require('../maps/routingService');
 const { getLandmarksForDestination } = require('../../utils/indianLandmarks');
+const { fetchRealLocationImage } = require('../imageService');
 
 /**
- * Fallback location image gallery
+ * Attaches geocoded activity stops, real location image, and route metrics to an itinerary day
  */
-const DEFAULT_LOCATION_IMAGES = [
-  "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80"
-];
-
-/**
- * Attaches geocoded activity stops, location image, and route metrics to an itinerary day
- */
-const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], dayIndex = 1, destImages = []) => {
+const attachGeospatialRouteToDay = async (dayItem, destCoords, attractionsList = [], dayIndex = 1, destName = '') => {
   const baseLat = destCoords.lat || 25.3176;
   const baseLng = destCoords.lng || 82.9739;
 
@@ -33,9 +23,8 @@ const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], d
     { dLat: -0.0180, dLng: -0.0100 }
   ];
 
-  const dayImage = (destImages && destImages.length > 0)
-    ? destImages[(dayIndex - 1) % destImages.length]
-    : DEFAULT_LOCATION_IMAGES[(dayIndex - 1) % DEFAULT_LOCATION_IMAGES.length];
+  const morningActivity = Array.isArray(dayItem.morning) ? dayItem.morning[0] : (dayItem.morning || '');
+  const realDayImage = await fetchRealLocationImage(morningActivity || dayItem.title || destName, destName);
 
   const rawStops = [
     {
@@ -72,7 +61,7 @@ const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], d
 
   return {
     ...dayItem,
-    imageUrl: dayItem.imageUrl || dayImage,
+    imageUrl: realDayImage || dayItem.imageUrl,
     routeMetrics: {
       totalDistanceKm: routeData.totalDistanceKm,
       estimatedTravelTimeMins: routeData.estimatedTravelTimeMins,
@@ -177,7 +166,7 @@ Return PURE VALID JSON with NO code fences outside:
 };
 
 /**
- * Generates an AI-powered structured travel itinerary with geospatial route optimization
+ * Generates an AI-powered structured travel itinerary with geospatial route optimization & real location images
  */
 const generateStructuredAiItinerary = async ({ userPreferences, candidateDestination }) => {
   const {
@@ -194,7 +183,7 @@ const generateStructuredAiItinerary = async ({ userPreferences, candidateDestina
   const landmarkInfo = getLandmarksForDestination(destName);
   const attractions = candidateDestination.topAttractions || (landmarkInfo ? landmarkInfo.topAttractions : null) || [`Famous ${destName} Landmark`, `Heritage Site in ${destName}`, `Local Market in ${destName}`];
   const destCoords = candidateDestination.coordinates || (landmarkInfo ? landmarkInfo.coordinates : { lat: 19.1383, lng: 77.3210 });
-  const coverImage = candidateDestination.imageUrl || (landmarkInfo ? landmarkInfo.imageUrl : DEFAULT_LOCATION_IMAGES[0]);
+  const coverImage = candidateDestination.imageUrl || (landmarkInfo ? landmarkInfo.imageUrl : await fetchRealLocationImage(destName));
 
   let itineraryPlan = null;
 
@@ -268,15 +257,15 @@ JSON SCHEMA REQUIREMENT:
   }
 
   if (!itineraryPlan) {
-    itineraryPlan = createIndianFallbackItinerary({ userPreferences, candidateDestination });
+    itineraryPlan = await createIndianFallbackItinerary({ userPreferences, candidateDestination });
   }
 
-  const destImages = (landmarkInfo && landmarkInfo.locationImages) ? landmarkInfo.locationImages : [coverImage];
-
-  // Attach geospatial route optimization & location image to each day of the itinerary
+  // Attach geospatial route optimization & real location image to each day of the itinerary
   if (itineraryPlan && Array.isArray(itineraryPlan.days)) {
-    itineraryPlan.days = itineraryPlan.days.map((day, idx) =>
-      attachGeospatialRouteToDay(day, destCoords, attractions, idx + 1, destImages)
+    itineraryPlan.days = await Promise.all(
+      itineraryPlan.days.map((day, idx) =>
+        attachGeospatialRouteToDay(day, destCoords, attractions, idx + 1, destName)
+      )
     );
   }
 
@@ -284,9 +273,9 @@ JSON SCHEMA REQUIREMENT:
 };
 
 /**
- * Deterministic Indian Fallback Itinerary Generator with Real Landmarks & Location Images
+ * Deterministic Indian Fallback Itinerary Generator with Real Landmarks & Real Location Images
  */
-const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }) => {
+const createIndianFallbackItinerary = async ({ userPreferences, candidateDestination }) => {
   const duration = userPreferences.duration || candidateDestination.idealDurationDays || 3;
   const budgetLevel = userPreferences.budgetLevel || candidateDestination.budgetLevel || 'Standard';
   const group = userPreferences.group || 'Solo';
@@ -295,8 +284,7 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
   const destName = candidateDestination.name || candidateDestination.destinationName || 'Nanded';
   const landmarkInfo = getLandmarksForDestination(destName);
 
-  const coverImage = candidateDestination.imageUrl || (landmarkInfo ? landmarkInfo.imageUrl : DEFAULT_LOCATION_IMAGES[0]);
-  const destImages = (landmarkInfo && landmarkInfo.locationImages) ? landmarkInfo.locationImages : [coverImage];
+  const coverImage = candidateDestination.imageUrl || (landmarkInfo ? landmarkInfo.imageUrl : await fetchRealLocationImage(destName));
 
   const attractions = (candidateDestination.topAttractions && candidateDestination.topAttractions.length > 0)
     ? candidateDestination.topAttractions
@@ -318,12 +306,12 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
   for (let i = 1; i <= duration; i++) {
     const mainAttraction = attractions[(i - 1) % attractions.length];
     const secondaryAttraction = attractions[i % attractions.length] || mainAttraction;
-    const dayImg = destImages[(i - 1) % destImages.length];
+    const dayImg = await fetchRealLocationImage(mainAttraction, destName);
 
     daysArray.push({
       day: i,
       title: `Day ${i}: ${mainAttraction} & ${destName} Exploration`,
-      imageUrl: dayImg,
+      imageUrl: dayImg || coverImage,
       morning: [`Darshan & morning visit to ${mainAttraction}`, `Explore surrounding historical heritage & sacred premises in ${destName}`],
       afternoon: [`Enjoy authentic local lunch at ${landmarkInfo ? landmarkInfo.foodSpot : 'popular Dhaba/Thali center'}`, `Relaxed afternoon visit to ${secondaryAttraction}`],
       evening: [`Sunset view at Godavari Ghat & evening Aarti/Prayer`, `Dinner at recommended local food trail spot in ${destName}`],
