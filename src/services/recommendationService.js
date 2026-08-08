@@ -1,0 +1,243 @@
+// -----------------------------------------------------------------------------
+// Deterministic Recommendation & Multi-Attribute Scoring Engine (src/services/recommendationService.js)
+// -----------------------------------------------------------------------------
+const Destination = require('../models/Destination');
+const { initialDestinations } = require('../utils/seeder');
+
+// Default Component Weights (Sum to 1.0 / 100%)
+const DEFAULT_WEIGHTS = {
+  vibe: 0.30,
+  budget: 0.20,
+  duration: 0.15,
+  group: 0.10,
+  season: 0.10,
+  food: 0.05,
+  popularity: 0.05,
+  rating: 0.05
+};
+
+/**
+ * Calculates deterministic match score & component breakdown for a destination
+ */
+const calculateDestinationScore = (destination, preferences, weights = DEFAULT_WEIGHTS) => {
+  const {
+    budget,
+    budgetLevel,
+    duration = 3,
+    group = 'Solo',
+    vibes = [],
+    season,
+    foodPreferences = []
+  } = preferences;
+
+  // 1. Vibe Score (30%)
+  let vibeScore = 80;
+  if (Array.isArray(vibes) && vibes.length > 0) {
+    const destVibesLower = (destination.travelVibes || []).map(v => v.toLowerCase());
+    const matchedCount = vibes.filter(v => destVibesLower.includes(v.toLowerCase())).length;
+    vibeScore = Math.min(100, Math.round((matchedCount / vibes.length) * 100));
+    if (matchedCount === 0) vibeScore = 30;
+  }
+
+  // 2. Budget Score (20%)
+  let budgetScore = 80;
+  const destDailyCost = destination.estimatedCostPerDayInr || destination.estimatedCostPerDay || 2500;
+
+  if (budget && typeof budget === 'number' && budget > 0) {
+    const targetDailyCost = budget / (duration || 1);
+    if (destDailyCost <= targetDailyCost) {
+      budgetScore = Math.min(100, 100 - Math.round(((targetDailyCost - destDailyCost) / targetDailyCost) * 15));
+    } else {
+      const overratio = (destDailyCost - targetDailyCost) / targetDailyCost;
+      budgetScore = Math.max(10, Math.round(100 - (overratio * 100)));
+    }
+  } else if (budgetLevel) {
+    const levelMap = {
+      'pocket-friendly': 'pocket-friendly',
+      'budget': 'pocket-friendly',
+      'standard': 'standard',
+      'mid-range': 'standard',
+      'royal-luxury': 'royal-luxury',
+      'luxury': 'royal-luxury'
+    };
+    const reqLevel = levelMap[budgetLevel.toLowerCase()] || 'standard';
+    const destLevel = levelMap[(destination.budgetLevel || '').toLowerCase()] || 'standard';
+    budgetScore = reqLevel === destLevel ? 100 : 65;
+  }
+
+  // 3. Duration Score (15%)
+  const destIdealDays = destination.idealDurationDays || destination.idealDuration || 3;
+  const diffDays = Math.abs(destIdealDays - duration);
+  const durationScore = Math.max(20, 100 - (diffDays * 20));
+
+  // 4. Group Suitability Score (10%)
+  let groupScore = 70;
+  if (group) {
+    const suitableList = (destination.suitableFor || ['Solo', 'Couple', 'Friends', 'Family']).map(g => g.toLowerCase());
+    if (suitableList.includes(group.toLowerCase())) {
+      groupScore = 100;
+    } else {
+      groupScore = 50;
+    }
+  }
+
+  // 5. Season Score (10%)
+  let seasonScore = 80;
+  if (season) {
+    const bestSeasonsLower = (destination.bestSeasons || ['All Year']).map(s => s.toLowerCase());
+    if (bestSeasonsLower.includes(season.toLowerCase()) || bestSeasonsLower.includes('all year')) {
+      seasonScore = 100;
+    } else {
+      seasonScore = 45;
+    }
+  }
+
+  // 6. Food Options Score (5%)
+  let foodScore = 85;
+  if (Array.isArray(foodPreferences) && foodPreferences.length > 0) {
+    const foodOptsLower = (destination.foodOptions || ['Pure Veg', 'Non-Veg']).map(f => f.toLowerCase());
+    const matchedFood = foodPreferences.filter(f => foodOptsLower.includes(f.toLowerCase())).length;
+    foodScore = Math.min(100, Math.round((matchedFood / foodPreferences.length) * 100));
+  }
+
+  // 7. Popularity Score (5%)
+  const popularityScore = destination.popularityScore || 85;
+
+  // 8. Rating Score (5%)
+  const ratingScore = Math.min(100, Math.round(((destination.rating || 4.8) / 5.0) * 100));
+
+  // Overall Weighted Score Calculation (0 - 99%)
+  const weightedSum =
+    (vibeScore * weights.vibe) +
+    (budgetScore * weights.budget) +
+    (durationScore * weights.duration) +
+    (groupScore * weights.group) +
+    (seasonScore * weights.season) +
+    (foodScore * weights.food) +
+    (popularityScore * weights.popularity) +
+    (ratingScore * weights.rating);
+
+  const matchScore = Math.min(99, Math.max(10, Math.round(weightedSum)));
+
+  const scoreBreakdown = {
+    vibe: vibeScore,
+    budget: budgetScore,
+    duration: durationScore,
+    group: groupScore,
+    season: seasonScore,
+    food: foodScore,
+    popularity: popularityScore,
+    rating: ratingScore
+  };
+
+  // Deterministic Natural Language Rationale Explanation
+  const matchExplanation = generateMatchExplanation(destination, preferences, scoreBreakdown, matchScore);
+
+  return {
+    matchScore,
+    scoreBreakdown,
+    matchExplanation
+  };
+};
+
+/**
+ * Generates deterministic bullet-point rationale based on score sub-components
+ */
+const generateMatchExplanation = (destination, preferences, scoreBreakdown, matchScore) => {
+  const explanations = [];
+
+  explanations.push(`${matchScore}% Overall Compatibility`);
+
+  if (scoreBreakdown.vibe >= 80) {
+    explanations.push(`Strong alignment with your requested travel vibes (${(destination.travelVibes || []).slice(0, 3).join(', ')}).`);
+  } else if (scoreBreakdown.vibe < 50) {
+    explanations.push(`Partial vibe alignment with ${destination.name}.`);
+  }
+
+  if (scoreBreakdown.budget >= 85) {
+    explanations.push(`Fits comfortably within your specified budget (₹${destination.estimatedCostPerDayInr || 2500}/day est.).`);
+  } else if (scoreBreakdown.budget < 50) {
+    explanations.push(`Estimated daily cost (₹${destination.estimatedCostPerDayInr || 2500}/day) exceeds your preferred budget target.`);
+  }
+
+  if (scoreBreakdown.group >= 90 && preferences.group) {
+    explanations.push(`Highly recommended for ${preferences.group} travelers.`);
+  }
+
+  if (scoreBreakdown.duration >= 85 && preferences.duration) {
+    explanations.push(`Ideal ${destination.idealDurationDays || 3}-day trip length matches your ${preferences.duration}-day duration.`);
+  }
+
+  if (scoreBreakdown.season >= 90 && preferences.season) {
+    explanations.push(`Best time to visit (${(destination.bestSeasons || []).join(', ')}) aligns with your preferred season.`);
+  }
+
+  if (destination.rating >= 4.8) {
+    explanations.push(`Top rated destination with a ${destination.rating}/5.0 traveler score.`);
+  }
+
+  return explanations;
+};
+
+/**
+ * Queries candidates and returns ranked recommendations with match scores & explanations
+ */
+const getPersonalizedRecommendations = async (preferences) => {
+  const { category, budgetLevel, vibes, sort = 'match', limit = 10, page = 1 } = preferences;
+
+  let candidates = [];
+  try {
+    let query = {};
+    if (category) query.category = category;
+    if (budgetLevel) query.budgetLevel = budgetLevel;
+
+    candidates = await Destination.find(query).lean();
+  } catch (err) {
+    console.warn('⚠️ MongoDB query error, using local candidates seed.');
+    candidates = initialDestinations;
+  }
+
+  if (!candidates || candidates.length === 0) {
+    candidates = initialDestinations;
+  }
+
+  // Calculate deterministic scores for all candidate destinations
+  const scoredRecommendations = candidates.map(dest => {
+    const scoringResult = calculateDestinationScore(dest, preferences);
+    return {
+      destination: dest,
+      matchScore: scoringResult.matchScore,
+      scoreBreakdown: scoringResult.scoreBreakdown,
+      matchExplanation: scoringResult.matchExplanation
+    };
+  });
+
+  // Apply requested sorting
+  if (sort === 'budget_asc') {
+    scoredRecommendations.sort((a, b) => (a.destination.estimatedCostPerDayInr || 0) - (b.destination.estimatedCostPerDayInr || 0));
+  } else if (sort === 'rating_desc') {
+    scoredRecommendations.sort((a, b) => (b.destination.rating || 0) - (a.destination.rating || 0));
+  } else if (sort === 'popularity_desc') {
+    scoredRecommendations.sort((a, b) => (b.destination.popularityScore || 0) - (a.destination.popularityScore || 0));
+  } else {
+    // Default: Sort by highest match score descending
+    scoredRecommendations.sort((a, b) => b.matchScore - a.matchScore);
+  }
+
+  // Paginate results
+  const skip = (page - 1) * limit;
+  const paginatedResults = scoredRecommendations.slice(skip, skip + limit);
+
+  return {
+    totalResults: scoredRecommendations.length,
+    page,
+    limit,
+    recommendations: paginatedResults
+  };
+};
+
+module.exports = {
+  calculateDestinationScore,
+  generateMatchExplanation,
+  getPersonalizedRecommendations
+};

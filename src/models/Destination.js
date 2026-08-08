@@ -19,6 +19,10 @@ const destinationSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  city: {
+    type: String,
+    trim: true
+  },
   category: {
     type: String,
     enum: ['Hill Station', 'Beach', 'Heritage', 'Spiritual', 'Nature', 'Desert', 'Island', 'Backwaters'],
@@ -45,6 +49,26 @@ const destinationSchema = new mongoose.Schema({
     type: String,
     enum: ['Adventure', 'Nature', 'Relaxation', 'Heritage', 'Nightlife', 'Foodie', 'Spiritual', 'Honeymoon', 'Family', 'Beach', 'Himalayan Trek', 'Shopping']
   }],
+  suitableFor: [{
+    type: String,
+    enum: ['Solo', 'Couple', 'Friends', 'Family', 'Senior Citizens'],
+    default: ['Solo', 'Couple', 'Friends', 'Family']
+  }],
+  foodOptions: [{
+    type: String,
+    enum: ['Pure Veg', 'Non-Veg', 'Jain', 'Street Food', 'Local Dhaba'],
+    default: ['Pure Veg', 'Non-Veg', 'Street Food', 'Local Dhaba']
+  }],
+  averageLocalTransportCostInr: {
+    type: Number,
+    default: 500
+  },
+  popularityScore: {
+    type: Number,
+    default: 85,
+    min: 1,
+    max: 100
+  },
   bestSeasons: [{
     type: String,
     enum: ['Spring', 'Summer', 'Autumn', 'Winter', 'Monsoon', 'All Year']
@@ -76,14 +100,32 @@ const destinationSchema = new mongoose.Schema({
     default: false
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-// Database Indexes for Fast Search & Filtering
+// Virtual aliases for uniform API compatibility
+destinationSchema.virtual('averageDailyCost').get(function() {
+  return this.estimatedCostPerDayInr;
+});
+
+destinationSchema.virtual('idealDuration').get(function() {
+  return this.idealDurationDays;
+});
+
+destinationSchema.virtual('state').get(function() {
+  return this.stateOrRegion;
+});
+
+// Database Indexes for Fast Search, Filtering & Recommendation Querying
 destinationSchema.index({ name: 1 });
 destinationSchema.index({ category: 1 });
 destinationSchema.index({ budgetLevel: 1 });
 destinationSchema.index({ travelVibes: 1 });
+destinationSchema.index({ suitableFor: 1 });
+destinationSchema.index({ popularityScore: -1 });
+destinationSchema.index({ rating: -1 });
 destinationSchema.index({ name: 'text', description: 'text', stateOrRegion: 'text' });
 
 module.exports = mongoose.model('Destination', destinationSchema);

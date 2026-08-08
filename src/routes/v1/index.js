@@ -9,11 +9,13 @@ const destinationRoutes = require('../destinationRoutes');
 const aiPlannerRoutes = require('../aiPlannerRoutes');
 const authRoutes = require('../authRoutes');
 const subscriptionRoutes = require('../subscriptionRoutes');
+const recommendationRoutes = require('../recommendationRoutes');
 
 // Mount Modules under API version 1 prefix
 router.use('/destinations', destinationRoutes);
 router.use('/ai-planner', aiPlannerRoutes);
 router.use('/auth', authRoutes);
 router.use('/subscription', subscriptionRoutes);
+router.use('/recommendations', recommendationRoutes);
 
 module.exports = router;
