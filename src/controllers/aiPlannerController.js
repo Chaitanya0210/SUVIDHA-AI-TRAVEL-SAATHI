@@ -1,32 +1,86 @@
 // -----------------------------------------------------------------------------
 // AI Planner Controller (src/controllers/aiPlannerController.js)
 // -----------------------------------------------------------------------------
-const { generateAiItinerary } = require('../services/geminiService');
+const { generateStructuredAiItinerary } = require('../services/ai/geminiService');
+const { getPersonalizedRecommendations } = require('../services/recommendationService');
 const { initialDestinations } = require('../utils/seeder');
-const AppError = require('../utils/appError');
+const { ValidationError } = require('../utils/appError');
 
 /**
  * Handles AI trip planning generation
  */
 const planTripWithAi = async (req, res, next) => {
   try {
-    const { destination, durationDays, budgetLevel, travelVibe, groupType } = req.body;
+    const { destination, durationDays, budgetLevel, travelVibe, groupType, budget } = req.body;
 
-    if (!destination || destination.trim() === '') {
-      return next(new AppError('Please provide a destination name.', 400));
+    const duration = parseInt(durationDays, 10) || 3;
+    if (isNaN(duration) || duration < 1 || duration > 30) {
+      return next(new ValidationError('Duration must be between 1 and 30 days.'));
     }
 
-    const itineraryPlan = await generateAiItinerary({
-      destination,
-      durationDays: parseInt(durationDays, 10) || 3,
+    const userPreferences = {
+      budget: budget ? parseFloat(budget) : null,
       budgetLevel: budgetLevel || 'Standard',
-      travelVibe: travelVibe || 'Adventure',
-      groupType: groupType || 'Solo'
+      duration,
+      group: groupType || 'Solo',
+      vibes: travelVibe ? [travelVibe] : ['Adventure']
+    };
+
+    // Candidate Generation via Recommendation Engine
+    const recResult = await getPersonalizedRecommendations(userPreferences);
+    let candidateDestination = null;
+
+    if (destination && destination.trim() !== '') {
+      const foundMatch = recResult.recommendations.find(r =>
+        r.destination.name.toLowerCase().includes(destination.trim().toLowerCase())
+      );
+      if (foundMatch) {
+        candidateDestination = {
+          ...foundMatch.destination,
+          matchScore: foundMatch.matchScore,
+          matchExplanation: foundMatch.matchExplanation
+        };
+      }
+    }
+
+    if (!candidateDestination) {
+      // Pick top recommendation candidate
+      const topRec = recResult.recommendations[0];
+      if (topRec) {
+        candidateDestination = {
+          ...topRec.destination,
+          matchScore: topRec.matchScore,
+          matchExplanation: topRec.matchExplanation
+        };
+      } else {
+        candidateDestination = initialDestinations[0];
+      }
+    }
+
+    // Call Gemini AI Service with candidate context
+    const itineraryPlan = await generateStructuredAiItinerary({
+      userPreferences,
+      candidateDestination
     });
 
     res.status(200).json({
-      status: 'success',
-      data: itineraryPlan
+      success: true,
+      data: {
+        destinationName: itineraryPlan.destination,
+        summary: itineraryPlan.summary,
+        matchReasoning: itineraryPlan.matchReasoning,
+        matchScore: candidateDestination.matchScore || 90,
+        estimatedCost: itineraryPlan.estimatedCost,
+        days: itineraryPlan.days,
+        travelTips: itineraryPlan.travelTips || [],
+        // Legacy properties for backward compatibility
+        durationDays: duration,
+        budgetLevel: userPreferences.budgetLevel,
+        travelVibe: userPreferences.vibes[0],
+        estimatedTotalCostInr: itineraryPlan.estimatedCost ? itineraryPlan.estimatedCost.total : duration * 3000,
+        currency: 'INR',
+        itinerary: itineraryPlan.days
+      }
     });
   } catch (error) {
     next(error);
@@ -40,26 +94,22 @@ const getRecommendedDestinations = async (req, res, next) => {
   try {
     const { budget, vibe, season } = req.query;
 
-    const scoredList = initialDestinations.map(dest => {
-      let score = 50; // base score
+    const userPreferences = {
+      budget: budget ? parseFloat(budget) : null,
+      vibes: vibe ? [vibe] : [],
+      season
+    };
 
-      if (budget && dest.budgetLevel.toLowerCase() === budget.toLowerCase()) score += 20;
-      if (vibe && dest.travelVibes.some(v => v.toLowerCase() === vibe.toLowerCase())) score += 20;
-      if (season && dest.bestSeasons.some(s => s.toLowerCase() === season.toLowerCase() || s === 'All Year')) score += 10;
-
-      return {
-        ...dest,
-        matchPercentage: Math.min(score, 99)
-      };
-    });
-
-    // Sort by match percentage descending
-    scoredList.sort((a, b) => b.matchPercentage - a.matchPercentage);
+    const recResult = await getPersonalizedRecommendations(userPreferences);
 
     res.status(200).json({
-      status: 'success',
-      results: scoredList.length,
-      data: scoredList
+      success: true,
+      results: recResult.recommendations.length,
+      data: recResult.recommendations.map(r => ({
+        ...r.destination,
+        matchPercentage: r.matchScore,
+        matchExplanation: r.matchExplanation
+      }))
     });
   } catch (error) {
     next(error);
