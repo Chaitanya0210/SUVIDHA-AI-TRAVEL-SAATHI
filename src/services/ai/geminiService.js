@@ -67,6 +67,97 @@ const attachGeospatialRouteToDay = (dayItem, destCoords, attractionsList = [], d
 };
 
 /**
+ * Generates AI travel suggestions matching Madhusudan6114's repo structure
+ */
+const generateAiTravelSuggestions = async (userPreferences) => {
+  const { vibes = ['Adventure'], budgetLevel = 'Standard', duration = 3, group = 'Solo' } = userPreferences;
+  const apiKey = config.GEMINI_API_KEY;
+
+  if (apiKey && apiKey.trim() !== '') {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+      const prompt = `You are SUVIDHA AI Travel Saathi. Suggest 5 personalized Indian travel destination recommendations based on these preferences:
+- Travel Vibe/Style: ${vibes.join(', ')}
+- Budget Level: ${budgetLevel}
+- Ideal Duration: ${duration} days
+- Group Type: ${group}
+
+Return PURE VALID JSON with NO code fences outside:
+{
+  "suggestions": [
+    {
+      "destination": "Destination Name",
+      "country": "India",
+      "stateOrRegion": "State Name",
+      "category": "Beach/Mountain/Spiritual/Heritage",
+      "estimatedBudget": {
+        "min": 6000,
+        "max": 15000,
+        "currency": "INR"
+      },
+      "bestTimeToVisit": "October to March",
+      "highlights": ["Highlight 1", "Highlight 2", "Highlight 3"],
+      "whyRecommended": "Specific reason why this fits the user's travel style",
+      "estimatedDuration": "${duration} days",
+      "difficultyLevel": "easy",
+      "uniqueExperiences": ["Unique Experience 1", "Unique Experience 2"]
+    }
+  ],
+  "personalizedTips": [
+    "Useful budget optimization tip",
+    "Local cultural tip"
+  ]
+}`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(cleaned);
+    } catch (e) {
+      console.warn('⚠️ AI Travel Suggestions generation error:', e.message);
+    }
+  }
+
+  // Fallback AI suggestions matching the structure
+  return {
+    suggestions: [
+      {
+        destination: "Manali",
+        country: "India",
+        stateOrRegion: "Himachal Pradesh",
+        category: "Mountain",
+        estimatedBudget: { min: 8000, max: 18000, currency: "INR" },
+        bestTimeToVisit: "October to June",
+        highlights: ["Solang Valley Paragliding", "Hadimba Temple", "Atal Tunnel Expedition"],
+        whyRecommended: "Perfect for mountain adventures, snow views, and cafe exploration.",
+        estimatedDuration: `${duration} days`,
+        difficultyLevel: "moderate",
+        uniqueExperiences: ["Igloo stay in winter", "Riverside trout dining in Old Manali"]
+      },
+      {
+        destination: "Goa",
+        country: "India",
+        stateOrRegion: "Goa",
+        category: "Beach",
+        estimatedBudget: { min: 10000, max: 22000, currency: "INR" },
+        bestTimeToVisit: "November to February",
+        highlights: ["Baga & Palolem Beaches", "Dudhsagar Waterfalls", "Fontainhas Latin Heritage Walk"],
+        whyRecommended: "Ideal for sun-kissed beaches, coastal cuisine, and relaxation.",
+        estimatedDuration: `${duration} days`,
+        difficultyLevel: "easy",
+        uniqueExperiences: ["Scuba diving at Grand Island", "Sunset cruise on Mandovi River"]
+      }
+    ],
+    personalizedTips: [
+      "Book IRCTC train tickets 60 days in advance for lower transit costs.",
+      "Carry local cash for dhaba meals and street craft markets."
+    ]
+  };
+};
+
+/**
  * Generates an AI-powered structured travel itinerary with geospatial route optimization
  */
 const generateStructuredAiItinerary = async ({ userPreferences, candidateDestination }) => {
@@ -101,7 +192,7 @@ Structured Candidate Destination Context:
 - Food Options: ${(candidateDestination.foodOptions || []).join(', ')}
 
 INSTRUCTIONS:
-1. Use the provided structured candidate facts. Do not invent non-existent geographical facts.
+1. Use the provided structured candidate facts for ${destName}. Do not invent non-existent geographical facts.
 2. Respect the target duration (${duration} days), group type (${group}), and budget level (${budgetLevel}).
 3. Return STRICTLY PURE VALID JSON with NO markdown formatting, no code blocks, and no extra text outside the JSON object.
 
@@ -222,5 +313,6 @@ const createIndianFallbackItinerary = ({ userPreferences, candidateDestination }
 
 module.exports = {
   generateStructuredAiItinerary,
-  createIndianFallbackItinerary
+  createIndianFallbackItinerary,
+  generateAiTravelSuggestions
 };
