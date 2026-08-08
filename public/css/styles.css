@@ -15,6 +15,7 @@
   --accent-purple: #8b5cf6;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
+  --accent-gold: #fbbf24;
 
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
@@ -25,6 +26,7 @@
 
   --gradient-main: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
   --gradient-amber: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  --gradient-gold: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
   --gradient-hero: radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.15), transparent 70%);
 
   --radius-sm: 8px;
@@ -550,4 +552,94 @@ footer {
   text-align: center;
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+/* -----------------------------------------------------------------------------
+ * Premium Gold & Partner Booking Shortcut Styles
+ * ----------------------------------------------------------------------------- */
+.btn-gold {
+  background: var(--gradient-gold);
+  color: #041322;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+  font-weight: 700;
+}
+
+.btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+}
+
+.gold-badge {
+  background: var(--gradient-gold);
+  color: #000;
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+}
+
+.booking-suite-container {
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.booking-suite-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.partner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.partner-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.partner-card:hover {
+  border-color: var(--accent-gold);
+  transform: translateY(-3px);
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.pricing-plan-card {
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border-color);
+  text-align: center;
+  transition: var(--transition);
+  position: relative;
+}
+
+.pricing-plan-card.popular {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.25);
+}
+
+.pricing-price {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent-gold);
+  margin: 0.5rem 0;
 }

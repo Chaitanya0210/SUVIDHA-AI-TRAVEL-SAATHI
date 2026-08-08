@@ -34,6 +34,11 @@
             <li><a href="#workspace">Map & Itinerary</a></li>
             <li><a href="#destinations">Explore Spots</a></li>
             <li>
+                <button class="btn btn-gold" onclick="openPremiumModal()">
+                    <i class="fa-solid fa-crown"></i> Go Premium
+                </button>
+            </li>
+            <li>
                 <button class="btn btn-secondary" id="wishlist-btn">
                     <i class="fa-solid fa-bookmark" style="color: var(--accent-amber);"></i> Wishlist 
                     <span id="wishlist-count" style="background: var(--accent-emerald); color: #000; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">0</span>
@@ -221,6 +226,64 @@
             <div style="text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
                 <span id="auth-toggle-text">Don't have an account?</span> 
                 <a href="#" onclick="toggleAuthMode()" style="color: var(--accent-cyan); font-weight: 600;" id="auth-toggle-link">Register Here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ----------------------------------------------------------------------- -->
+    <!-- Premium Gold Subscription & Booking Suite Modal                        -->
+    <!-- ----------------------------------------------------------------------- -->
+    <div class="modal-overlay" id="premium-modal">
+        <div class="glass-panel modal-content" style="max-width: 780px;">
+            <button class="close-btn" onclick="closeModal('premium-modal')">&times;</button>
+            
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <span class="gold-badge" style="font-size: 0.9rem; padding: 0.3rem 1rem;">👑 SUVIDHA SAATHI GOLD CLUB</span>
+                <h2 style="font-size: 2.2rem; margin-top: 0.5rem; background: var(--gradient-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Unlock All-in-One Indian Travel Booking Suite
+                </h2>
+                <p style="color: var(--text-secondary); max-width: 600px; margin: 0.5rem auto 0;">
+                    Book cabs via <strong>Ola, Uber, Rapido</strong> • Order food via <strong>Swiggy, Zomato</strong> • Book stays via <strong>MakeMyTrip, Goibibo</strong> • Book tickets via <strong>RedBus & IRCTC</strong>!
+                </p>
+            </div>
+
+            <!-- Pricing Plans Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="pricing-plan-card">
+                    <h3 style="font-size: 1.3rem;">Monthly Saathi Pass</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">Flexible short-term travel pass</p>
+                    <div class="pricing-price">₹199 <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 400;">/ month</span></div>
+                    <ul style="text-align: left; list-style: none; padding: 0; font-size: 0.9rem; margin-bottom: 1.5rem; color: var(--text-secondary);">
+                        <li style="margin-bottom: 0.4rem;">✓ 1-Click Cab Booking (Ola / Uber / Rapido)</li>
+                        <li style="margin-bottom: 0.4rem;">✓ Swiggy & Zomato Itinerary Food Trail</li>
+                        <li style="margin-bottom: 0.4rem;">✓ MakeMyTrip & Goibibo Stays</li>
+                        <li style="margin-bottom: 0.4rem;">✓ RedBus & IRCTC Ticket Shortcuts</li>
+                    </ul>
+                    <button class="btn btn-secondary" onclick="processPayment('monthly')" style="width: 100%; justify-content: center;">
+                        Get Monthly Pass (₹199)
+                    </button>
+                </div>
+
+                <div class="pricing-plan-card popular">
+                    <span class="gold-badge" style="position: absolute; top: -12px; right: 1.5rem;">MOST POPULAR (SAVE 58%)</span>
+                    <h3 style="font-size: 1.3rem;">Annual Bharat Pass</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">Unlimited travel features for full year</p>
+                    <div class="pricing-price">₹999 <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 400;">/ year</span></div>
+                    <ul style="text-align: left; list-style: none; padding: 0; font-size: 0.9rem; margin-bottom: 1.5rem; color: var(--text-secondary);">
+                        <li style="margin-bottom: 0.4rem;">✓ All Monthly Pass Perks Included</li>
+                        <li style="margin-bottom: 0.4rem;">✓ Priority Unlimited Gemini AI Itineraries</li>
+                        <li style="margin-bottom: 0.4rem;">✓ Custom PDF & QR Code Downloads</li>
+                        <li style="margin-bottom: 0.4rem;">✓ 24/7 AI Travel Saathi Assistant Hotline</li>
+                    </ul>
+                    <button class="btn btn-gold" onclick="processPayment('annual')" style="width: 100%; justify-content: center;">
+                        Get Annual Pass (₹999)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulated Payment Checkout Footer -->
+            <div style="background: rgba(255,255,255,0.03); border: 1px dashed var(--accent-gold); padding: 1rem; border-radius: 10px; text-align: center; font-size: 0.85rem; color: var(--text-secondary);">
+                <i class="fa-solid fa-lock" style="color: var(--accent-emerald);"></i> 100% Secure Razorpay & Instant UPI Payment Integration (GPay, PhonePe, Paytm, BHIM, Cards)
             </div>
         </div>
     </div>

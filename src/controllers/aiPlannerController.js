@@ -2,23 +2,24 @@
 // AI Planner Controller (src/controllers/aiPlannerController.js)
 // -----------------------------------------------------------------------------
 const { generateAiItinerary } = require('../services/geminiService');
-const { initialDestinations } = require('./destinationController');
+const { initialDestinations } = require('../utils/seeder');
+const AppError = require('../utils/appError');
 
 /**
  * Handles AI trip planning generation
  */
-const planTripWithAi = async (req, res) => {
+const planTripWithAi = async (req, res, next) => {
   try {
     const { destination, durationDays, budgetLevel, travelVibe, groupType } = req.body;
 
     if (!destination || destination.trim() === '') {
-      return res.status(400).json({ status: 'fail', message: 'Please provide a destination name.' });
+      return next(new AppError('Please provide a destination name.', 400));
     }
 
     const itineraryPlan = await generateAiItinerary({
       destination,
-      durationDays: parseInt(durationDays) || 3,
-      budgetLevel: budgetLevel || 'Mid-Range',
+      durationDays: parseInt(durationDays, 10) || 3,
+      budgetLevel: budgetLevel || 'Standard',
       travelVibe: travelVibe || 'Adventure',
       groupType: groupType || 'Solo'
     });
@@ -28,14 +29,14 @@ const planTripWithAi = async (req, res) => {
       data: itineraryPlan
     });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    next(error);
   }
 };
 
 /**
  * Recommends matched destinations based on quiz attributes with percentage match scores
  */
-const getRecommendedDestinations = async (req, res) => {
+const getRecommendedDestinations = async (req, res, next) => {
   try {
     const { budget, vibe, season } = req.query;
 
@@ -61,7 +62,7 @@ const getRecommendedDestinations = async (req, res) => {
       data: scoredList
     });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    next(error);
   }
 };
 

@@ -224,6 +224,59 @@ function renderItineraryView(plan) {
           <strong>🍲 Food & Dhaba Trail:</strong> ${plan.foodAdvice}
         </div>
       ` : ''}
+
+      <!-- Integrated Partner Booking Suite -->
+      <div class="booking-suite-container">
+        <div class="booking-suite-header">
+          <span style="font-weight: 700; color: var(--accent-gold); font-size: 0.95rem;">
+            <i class="fa-solid fa-crown"></i> SUVIDHA Partner Booking Suite
+          </span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Direct Partner Redirects</span>
+        </div>
+        
+        <div class="partner-grid">
+          <a class="partner-card" onclick="handlePartnerClick('Ola', '${plan.destinationName}')">
+            <span class="partner-icon">🚕</span>
+            <strong>Ola Cabs</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Book Cab</span>
+          </a>
+          <a class="partner-card" onclick="handlePartnerClick('Uber', '${plan.destinationName}')">
+            <span class="partner-icon">🚘</span>
+            <strong>Uber Cabs</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Book Cab</span>
+          </a>
+          <a class="partner-card" onclick="handlePartnerClick('Rapido', '${plan.destinationName}')">
+            <span class="partner-icon">🛵</span>
+            <strong>Rapido Bike</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Quick Ride</span>
+          </a>
+          <a class="partner-card" onclick="handlePartnerClick('Swiggy', '${plan.destinationName}')">
+            <span class="partner-icon">🍕</span>
+            <strong>Swiggy</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Order Food</span>
+          </a>
+          <a class="partner-card" onclick="handlePartnerClick('Zomato', '${plan.destinationName}')">
+            <span class="partner-icon">🍔</span>
+            <strong>Zomato</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Order Food</span>
+          </a>
+          <a class="partner-card" onclick="handlePartnerClick('MakeMyTrip', '${plan.destinationName}')">
+            <span class="partner-icon">🏨</span>
+            <strong>MakeMyTrip</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Book Stays</span>
+          </a>
+          <a class="partner-card" onclick="handlePartnerClick('RedBus', '${plan.destinationName}')">
+            <span class="partner-icon">🚌</span>
+            <strong>RedBus</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Bus Tickets</span>
+          </a>
+          <a class="partner-card" onclick="handlePartnerClick('IRCTC', '${plan.destinationName}')">
+            <span class="partner-icon">🚆</span>
+            <strong>IRCTC</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">Train Tickets</span>
+          </a>
+        </div>
+      </div>
     </div>
 
     <div>
@@ -378,9 +431,12 @@ function checkUserSession() {
   const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
   const navItem = document.getElementById('auth-nav-item');
   if (user && navItem) {
+    const isGold = user.isPremium;
     navItem.innerHTML = `
       <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <span style="font-size: 0.9rem; color: var(--accent-emerald);">🙏 Namaste ${user.name}</span>
+        <span style="font-size: 0.9rem; color: ${isGold ? 'var(--accent-gold)' : 'var(--accent-emerald)'}; font-weight: 700;">
+          ${isGold ? '👑 GOLD MEMBER:' : '🙏 Namaste'} ${user.name}
+        </span>
         <button class="btn btn-secondary" onclick="logoutUser()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Logout</button>
       </div>
     `;
@@ -406,4 +462,75 @@ function showToast(message, type = 'info') {
   setTimeout(() => {
     toast.remove();
   }, 4000);
+}
+
+// -----------------------------------------------------------------------------
+// Premium Subscription & Integrated Partner Redirect Logic
+// -----------------------------------------------------------------------------
+function openPremiumModal() {
+  document.getElementById('premium-modal').classList.add('active');
+}
+
+async function processPayment(plan) {
+  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
+  const userId = user ? user._id : 'demo_user_123';
+  const priceText = plan === 'annual' ? '₹999' : '₹199';
+
+  showToast(`Simulating Secure Razorpay/UPI Payment of ${priceText}...`, 'info');
+
+  try {
+    const res = await fetch('/api/subscription/upgrade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, plan, paymentMethod: 'UPI' })
+    });
+
+    const json = await res.json();
+    if (json.status === 'success') {
+      const updatedUser = {
+        ...(user || { name: 'Travel Enthusiast', email: 'demo@suvidha.com' }),
+        isPremium: true,
+        subscriptionPlan: plan
+      };
+      localStorage.setItem('suvidha_user', JSON.stringify(updatedUser));
+      
+      showToast(`🎉 Congratulations! You are now a SUVIDHA Gold ${plan.toUpperCase()} Member!`, 'success');
+      closeModal('premium-modal');
+      checkUserSession();
+    } else {
+      showToast('Payment processing failed', 'error');
+    }
+  } catch (error) {
+    console.error('Subscription error:', error);
+    showToast('Simulated payment error', 'error');
+  }
+}
+
+function handlePartnerClick(partner, destination) {
+  const user = JSON.parse(localStorage.getItem('suvidha_user') || 'null');
+  const isPremium = user && user.isPremium;
+  const cleanCity = encodeURIComponent(destination.split('(')[0].trim());
+
+  const deepLinks = {
+    'Ola': `https://book.olacabs.com/?drop_name=${cleanCity}`,
+    'Uber': `https://m.uber.com/ul/?action=setPickup&drop[formatted_address]=${cleanCity}`,
+    'Rapido': `https://www.rapido.bike/`,
+    'Swiggy': `https://www.swiggy.com/city/${cleanCity.toLowerCase()}`,
+    'Zomato': `https://www.zomato.com/${cleanCity.toLowerCase()}`,
+    'MakeMyTrip': `https://www.makemytrip.com/hotels/${cleanCity.toLowerCase()}-hotels.html`,
+    'RedBus': `https://www.redbus.in/bus-tickets/${cleanCity.toLowerCase()}`,
+    'IRCTC': `https://www.irctc.co.in/nget/train-search`
+  };
+
+  const targetUrl = deepLinks[partner] || 'https://www.google.com';
+
+  if (!isPremium) {
+    showToast(`🔒 Opening ${partner} booking shortcut! Upgrade to SUVIDHA Gold for pre-filled auto-redirects.`, 'info');
+  } else {
+    showToast(`🚀 Opening ${partner} for ${destination}...`, 'success');
+  }
+
+  setTimeout(() => {
+    window.open(targetUrl, '_blank');
+  }, 600);
 }

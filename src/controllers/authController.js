@@ -3,35 +3,35 @@
 // -----------------------------------------------------------------------------
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const config = require('../config/env');
+const AppError = require('../utils/appError');
+const mongoose = require('mongoose');
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'suvidha_jwt_secret', {
+  return jwt.sign({ id }, config.JWT_SECRET, {
     expiresIn: '30d'
   });
 };
 
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ status: 'fail', message: 'Please provide name, email, and password.' });
+      return next(new AppError('Please provide name, email, and password.', 400));
     }
 
-    let userExists = null;
-    try {
-      userExists = await User.findOne({ email });
-    } catch (e) {}
+    // Throw error if MongoDB is disconnected
+    if (mongoose.connection.readyState !== 1) {
+      return next(new AppError('Database connection error. Registration unavailable.', 503));
+    }
 
+    const userExists = await User.findOne({ email });
     if (userExists) {
-      return res.status(400).json({ status: 'fail', message: 'User with this email already exists.' });
+      return next(new AppError('User with this email already exists.', 400));
     }
 
-    let user = { _id: Date.now().toString(), name, email };
-    try {
-      user = await User.create({ name, email, password });
-    } catch (e) {}
-
+    const user = await User.create({ name, email, password });
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -44,33 +44,35 @@ const registerUser = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    next(error);
   }
 };
 
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ status: 'fail', message: 'Please provide email and password.' });
+      return next(new AppError('Please provide email and password.', 400));
     }
 
     let user = null;
-    try {
-      user = await User.findOne({ email }).select('+password');
-    } catch (e) {}
+    let dbConnected = mongoose.connection.readyState === 1;
 
-    // Mock validation fallback if DB is unpopulated
+    if (dbConnected) {
+      user = await User.findOne({ email }).select('+password');
+    }
+
+    // Mock validation fallback if DB is disconnected/unpopulated
     if (!user && (email === 'demo@suvidha.com' && password === 'password123')) {
       user = { _id: 'demo_user_123', name: 'Travel Enthusiast', email };
     } else if (user) {
       const isMatch = await user.matchPassword(password);
       if (!isMatch) {
-        return res.status(401).json({ status: 'fail', message: 'Invalid credentials.' });
+        return next(new AppError('Invalid credentials.', 401));
       }
     } else {
-      return res.status(401).json({ status: 'fail', message: 'Invalid credentials.' });
+      return next(new AppError('Invalid credentials.', 401));
     }
 
     const token = generateToken(user._id);
@@ -85,7 +87,7 @@ const loginUser = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    next(error);
   }
 };
 

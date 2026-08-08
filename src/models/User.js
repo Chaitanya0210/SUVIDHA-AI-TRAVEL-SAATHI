@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// User Model (src/models/User.js)
+// User Model (src/models/User.js) - Updated with Premium Subscription Fields
 // -----------------------------------------------------------------------------
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -23,6 +23,21 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
     select: false
   },
+  isPremium: {
+    type: Boolean,
+    default: false
+  },
+  subscriptionPlan: {
+    type: String,
+    enum: ['free', 'monthly', 'annual'],
+    default: 'free'
+  },
+  subscriptionExpiry: {
+    type: Date
+  },
+  paymentId: {
+    type: String
+  },
   savedTrips: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Trip'
@@ -35,7 +50,6 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Password Hashing Middleware
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
@@ -43,7 +57,6 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Compare password method
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
